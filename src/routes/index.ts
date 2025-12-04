@@ -2,12 +2,18 @@ import { Router } from 'express';
 import authRoutes from './authRoutes';
 import adminRoutes from './adminRoutes';
 import hostRoutes from './hostRoutes';
+import publicRoutes from './publicRoutes';
 
 const router = Router();
+
+console.log('✅ Main router loading...');
 
 router.use('/auth', authRoutes);
 router.use('/admin', adminRoutes);
 router.use('/host', hostRoutes);
+router.use('/public', publicRoutes);
+
+console.log('✅ All routes registered');
 
 // Health check
 router.get('/health', (req, res) => {
