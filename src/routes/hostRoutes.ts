@@ -24,4 +24,13 @@ router.put('/products/:id', upload.single('image'), hostController.updateProduct
 router.delete('/products/:id', hostController.deleteProduct);
 router.patch('/products/:id/toggle-availability', hostController.toggleProductAvailability);
 
+// ========== TABLES ========== 
+router.get('/stores/:storeId/tables', hostController.getTables);
+router.post('/stores/:storeId/tables', hostController.createTable);
+router.get('/stores/:storeId/tables/stats', hostController.getTableStats);
+router.get('/tables/:id', hostController.getTableById);
+router.put('/tables/:id', hostController.updateTable);
+router.delete('/tables/:id', hostController.deleteTable);
+router.patch('/tables/:id/regenerate-qr', hostController.regenerateQRCode);
+
 export default router;
