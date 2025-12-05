@@ -1,9 +1,11 @@
 import { Request, Response } from 'express';
 import { catchAsync } from '../utils/catchAsync';
+import { ApiError } from './../utils/ApiError';
 import { ApiResponse } from '../utils/ApiResponse';
 import categoryService from '../services/categoryService';
 import productService from '../services/productService';
 import tableService from '../services/tableService';
+import orderService from '../services/orderService';
 
 class HostController {
   // ========== CATEGORIES ========== (keep existing code)
@@ -157,6 +159,82 @@ class HostController {
     const stats = await tableService.getTableStats(storeId);
     res.status(200).json(
       ApiResponse.success(stats, 'Table statistics retrieved successfully')
+    );
+  });
+
+
+  // ========== ORDERS ==========
+
+  // Get all orders
+  getOrders = catchAsync(async (req: Request, res: Response) => {
+    const { storeId } = req.params;
+    const { status, startDate, endDate } = req.query;
+
+    const filter: any = {};
+    if (status) filter.status = status;
+    if (startDate) filter.startDate = new Date(startDate as string);
+    if (endDate) filter.endDate = new Date(endDate as string);
+
+    const orders = await orderService.getOrdersByStore(storeId, filter);
+
+    res.status(200).json(
+      ApiResponse.success(orders, 'Orders retrieved successfully')
+    );
+  });
+
+  // Get order by ID
+  getOrderById = catchAsync(async (req: Request, res: Response) => {
+    const order = await orderService.getOrderById(req.params.id);
+
+    res.status(200).json(
+      ApiResponse.success(order, 'Order retrieved successfully')
+    );
+  });
+
+  // Update order status
+  updateOrderStatus = catchAsync(async (req: Request, res: Response) => {
+    const { status } = req.body;
+
+    if (!['completed', 'cancelled'].includes(status)) {
+      throw new ApiError(400, 'Invalid status. Must be "completed" or "cancelled"');
+    }
+
+    const order = await orderService.updateOrderStatus(req.params.id, status);
+
+    res.status(200).json(
+      ApiResponse.success(order, 'Order status updated successfully')
+    );
+  });
+
+  // Get order statistics (WITH DATE FILTER FROM QUERY)
+  getOrderStats = catchAsync(async (req: Request, res: Response) => {
+    const { storeId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    const filter: any = {};
+    
+    // ✅ FIX: Parse dates from query params
+    if (startDate) {
+      filter.startDate = new Date(startDate as string);
+    }
+    if (endDate) {
+      filter.endDate = new Date(endDate as string);
+    }
+
+    const stats = await orderService.getOrderStats(storeId, filter);
+
+    res.status(200).json(
+      ApiResponse.success(stats, 'Order statistics retrieved successfully')
+    );
+  });
+
+  // Get today's stats (for dashboard)
+  getTodayStats = catchAsync(async (req: Request, res: Response) => {
+    const { storeId } = req.params;
+    const stats = await orderService.getTodayStats(storeId);
+
+    res.status(200).json(
+      ApiResponse.success(stats, 'Today statistics retrieved successfully')
     );
   });
 }

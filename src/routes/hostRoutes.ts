@@ -25,12 +25,19 @@ router.delete('/products/:id', hostController.deleteProduct);
 router.patch('/products/:id/toggle-availability', hostController.toggleProductAvailability);
 
 // ========== TABLES ========== 
+router.get('/stores/:storeId/tables/stats', hostController.getTableStats);
 router.get('/stores/:storeId/tables', hostController.getTables);
 router.post('/stores/:storeId/tables', hostController.createTable);
-router.get('/stores/:storeId/tables/stats', hostController.getTableStats);
 router.get('/tables/:id', hostController.getTableById);
 router.put('/tables/:id', hostController.updateTable);
 router.delete('/tables/:id', hostController.deleteTable);
 router.patch('/tables/:id/regenerate-qr', hostController.regenerateQRCode);
+
+// ========== ORDERS ========== (NEW)
+router.get('/stores/:storeId/orders/today', hostController.getTodayStats);
+router.get('/stores/:storeId/orders/stats', hostController.getOrderStats);
+router.get('/stores/:storeId/orders', hostController.getOrders);
+router.get('/orders/:id', hostController.getOrderById);
+router.patch('/orders/:id/status', hostController.updateOrderStatus);
 
 export default router;

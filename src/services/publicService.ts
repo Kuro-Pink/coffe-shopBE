@@ -5,6 +5,7 @@ import Product from '../models/Product';
 import Order, { IOrder } from '../models/Order';
 import { ApiError } from '../utils/ApiError';
 import { generateOrderNumber } from '../utils/orderNumberGenerator';
+import { emitNewOrder } from '../utils/socket';
 
 interface MenuData {
   store: {
@@ -182,8 +183,8 @@ class PublicService {
       status: 'pending',
     });
 
-    // TODO: Emit socket event to host (Phase 6)
-    // socketService.emitNewOrder(data.storeId, order);
+    // ✅ EMIT SOCKET EVENT TO HOST
+    emitNewOrder(data.storeId, order);
 
     return order;
   }
