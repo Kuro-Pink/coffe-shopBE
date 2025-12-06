@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import hostController from '../controllers/hostController';
+import analyticsController from '../controllers/analyticsController';
 import { protect, authorize } from '../middlewares/auth';
 import { upload } from '../middlewares/upload';
 
@@ -33,11 +34,21 @@ router.put('/tables/:id', hostController.updateTable);
 router.delete('/tables/:id', hostController.deleteTable);
 router.patch('/tables/:id/regenerate-qr', hostController.regenerateQRCode);
 
-// ========== ORDERS ========== (NEW)
+// ========== ORDERS ========== 
 router.get('/stores/:storeId/orders/today', hostController.getTodayStats);
 router.get('/stores/:storeId/orders/stats', hostController.getOrderStats);
 router.get('/stores/:storeId/orders', hostController.getOrders);
 router.get('/orders/:id', hostController.getOrderById);
 router.patch('/orders/:id/status', hostController.updateOrderStatus);
+
+// ========== ANALYTICS ========== 
+router.get('/stores/:storeId/analytics/dashboard', analyticsController.getDashboardOverview);
+router.get('/stores/:storeId/analytics/revenue-trends', analyticsController.getRevenueTrends);
+router.get('/stores/:storeId/analytics/peak-hours', analyticsController.getPeakHours);
+router.get('/stores/:storeId/analytics/best-sellers', analyticsController.getBestSellers);
+router.get('/stores/:storeId/analytics/customers', analyticsController.getCustomerInsights);
+router.get('/stores/:storeId/analytics/categories', analyticsController.getCategoryPerformance);
+router.get('/stores/:storeId/analytics/tables', analyticsController.getTablePerformance);
+
 
 export default router;

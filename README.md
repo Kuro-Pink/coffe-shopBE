@@ -9,6 +9,33 @@
 - Multer + Cloudinary (upload images)
 - Express-validator (validation)
 
+# Coffee Shop Management System - Backend
+
+## Features
+
+- Admin: Store management
+- Host: Menu, Tables, Orders, Analytics
+- Customer: Browse menu, Place orders (no auth)
+- Real-time order notifications via Socket.io
+
+## Tech Stack
+
+- Node.js + Express + TypeScript
+- MongoDB + Mongoose
+- Socket.io
+- Cloudinary
+- JWT
+
+## Setup
+
+1. npm install
+2. Copy .env.example to .env
+3. npm run dev
+
+## API Documentation
+
+See POSTMAN_COLLECTION.json
+
 backend/
 ├── src/
 │ ├── config/
