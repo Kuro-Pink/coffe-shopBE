@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import hostController from '../controllers/hostController';
 import analyticsController from '../controllers/analyticsController';
+import storeRequestController from '../controllers/storeRequestController';
 import { protect, authorize } from '../middlewares/auth';
 import { upload } from '../middlewares/upload';
 
@@ -9,6 +10,10 @@ const router = Router();
 // Protect all routes - only host can access
 router.use(protect);
 router.use(authorize('host'));
+
+// ========== STORE REQUESTS ========== (NEW)
+router.post('/store-requests', upload.single('storeLogo'), storeRequestController.createStoreRequest);
+router.get('/store-requests/my-requests', storeRequestController.getMyStoreRequests);
 
 // ========== CATEGORIES ==========
 router.get('/stores/:storeId/categories', hostController.getCategories);

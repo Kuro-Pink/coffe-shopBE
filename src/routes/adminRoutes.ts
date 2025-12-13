@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import adminController from '../controllers/adminController';
+import storeRequestController from '../controllers/storeRequestController';
 import { protect, authorize } from '../middlewares/auth';
 import { upload } from '../middlewares/upload';
 
@@ -11,6 +12,15 @@ router.use(authorize('admin'));
 
 // Statistics
 router.get('/stats', adminController.getStatistics);
+
+// ========== STORE REQUESTS ========== (NEW)
+router.get('/store-requests/stats', storeRequestController.getStatistics);
+router.get('/store-requests', storeRequestController.getAllStoreRequests);
+router.get('/store-requests/:id', storeRequestController.getStoreRequestById);
+router.post('/store-requests/:id/approve', storeRequestController.approveStoreRequest);
+router.post('/store-requests/:id/reject', storeRequestController.rejectStoreRequest);
+router.delete('/store-requests/:id', storeRequestController.deleteStoreRequest);
+
 
 // Store CRUD
 router.get('/stores', adminController.getAllStores);
