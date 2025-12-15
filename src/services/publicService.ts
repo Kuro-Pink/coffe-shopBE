@@ -5,7 +5,7 @@ import Product from '../models/Product';
 import Order, { IOrder } from '../models/Order';
 import { ApiError } from '../utils/ApiError';
 import { generateOrderNumber } from '../utils/orderNumberGenerator';
-import { emitOrdersChanged } from '../utils/socket';
+import { emitNewOrder } from '../utils/socket';
 
 interface MenuData {
   store: {
@@ -184,7 +184,7 @@ class PublicService {
     });
 
     // ✅ EMIT SOCKET EVENT TO HOST
-    emitOrdersChanged(data.storeId);
+    emitNewOrder(data.storeId, order);
 
     return order;
   }

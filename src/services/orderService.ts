@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import Order, { IOrder } from '../models/Order';
 import Store from '../models/Store';
 import { ApiError } from '../utils/ApiError';
-import { emitOrdersChanged } from '../utils/socket';
+import { emitOrderStatusUpdate } from '../utils/socket';
 
 interface GetOrdersFilter {
   status?: string;
@@ -71,7 +71,7 @@ class OrderService {
     }
     await order.save();
 
-    emitOrdersChanged(order.storeId.toString());
+    emitOrderStatusUpdate(order.storeId.toString(), order);
 
     return order;
   }

@@ -37,12 +37,13 @@ export const initSocket = (httpServer: HttpServer): SocketServer => {
         return next(new Error('User not found'));
       }
 
-      // Only host can connect
-      if (user.role !== 'host') {
-        return next(new Error('Only hosts can connect to socket'));
+      // Allow host & admin
+      if (!['host', 'admin'].includes(user.role)) {
+        return next(new Error('Unauthorized role'));
       }
 
       // Attach user info to socket
+      socket.userRole = user.role;
       socket.userId = user._id.toString();
       socket.storeId = user.storeId?.toString();
 
@@ -65,6 +66,12 @@ export const initSocket = (httpServer: HttpServer): SocketServer => {
       console.log(`📍 Host joined room: store:${socket.storeId}`);
     }
 
+    // ✅ ADMIN
+    if (socket.userRole === 'admin') {
+      socket.join('admins');
+      console.log('📍 Admin joined room: admins');
+    }
+
     // Disconnect handler
     socket.on('disconnect', () => {
       console.log(`📡 Socket disconnected: ${socket.id}`);
@@ -81,8 +88,24 @@ export const getIO = (): SocketServer => {
   return io;
 };
 
-// Emit when ANY order changes (create / update / cancel)
-export const emitOrdersChanged = (storeId: string) => {
-  const io = getIO();
-  io.to(`store:${storeId}`).emit('orders_changed');
+// Emit new order to host
+export const emitNewOrder = (storeId: string, order: any) => {
+  try {
+    const io = getIO();
+    io.to(`store:${storeId}`).emit('new_order', order);
+    console.log(`🔔 New order emitted to store: ${storeId}`);
+  } catch (error) {
+    console.error('Error emitting new order:', error);
+  }
+};
+
+// Emit order status update
+export const emitOrderStatusUpdate = (storeId: string, order: any) => {
+  try {
+    const io = getIO();
+    io.to(`store:${storeId}`).emit('order_status_update', order);
+    console.log(`📝 Order status update emitted to store: ${storeId}`);
+  } catch (error) {
+    console.error('Error emitting order status update:', error);
+  }
 };

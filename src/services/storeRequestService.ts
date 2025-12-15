@@ -4,6 +4,8 @@ import User from '../models/User';
 import { ApiError } from '../utils/ApiError';
 import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinaryUpload';
 import emailService from '../utils/emailService';
+import { getIO } from '../utils/socket';
+
 
 interface CreateStoreRequestData {
   userId: string;
@@ -57,6 +59,9 @@ class StoreRequestService {
       description: data.description,
       status: 'pending',
     });
+
+    const io = getIO();
+    io.to('admins').emit('store_request_created');
 
     return request;
   }
@@ -137,6 +142,9 @@ class StoreRequestService {
     const user = request.userId as any;
     await emailService.sendStoreApprovedEmail(user.email, user.name, request.storeName);
 
+    const io = getIO();
+    io.to('admins').emit('store_request_updated');
+
     return request;
   }
 
@@ -177,6 +185,9 @@ class StoreRequestService {
       request.storeName,
       rejectionReason
     );
+
+    const io = getIO();
+    io.to('admins').emit('store_request_updated');
 
     return request;
   }
