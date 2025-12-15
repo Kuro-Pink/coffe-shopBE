@@ -81,24 +81,8 @@ export const getIO = (): SocketServer => {
   return io;
 };
 
-// Emit new order to host
-export const emitNewOrder = (storeId: string, order: any) => {
-  try {
-    const io = getIO();
-    io.to(`store:${storeId}`).emit('new_order', order);
-    console.log(`🔔 New order emitted to store: ${storeId}`);
-  } catch (error) {
-    console.error('Error emitting new order:', error);
-  }
-};
-
-// Emit order status update
-export const emitOrderStatusUpdate = (storeId: string, order: any) => {
-  try {
-    const io = getIO();
-    io.to(`store:${storeId}`).emit('order_status_update', order);
-    console.log(`📝 Order status update emitted to store: ${storeId}`);
-  } catch (error) {
-    console.error('Error emitting order status update:', error);
-  }
+// Emit when ANY order changes (create / update / cancel)
+export const emitOrdersChanged = (storeId: string) => {
+  const io = getIO();
+  io.to(`store:${storeId}`).emit('orders_changed');
 };
