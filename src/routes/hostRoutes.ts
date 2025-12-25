@@ -2,6 +2,7 @@ import { Router } from 'express';
 import hostController from '../controllers/hostController';
 import analyticsController from '../controllers/analyticsController';
 import storeRequestController from '../controllers/storeRequestController';
+import billController from '../controllers/billController';
 import { protect, authorize } from '../middlewares/auth';
 import { upload } from '../middlewares/upload';
 
@@ -36,6 +37,7 @@ router.get('/stores/:storeId/tables', hostController.getTables);
 router.post('/stores/:storeId/tables', hostController.createTable);
 router.get('/tables/:id', hostController.getTableById);
 router.put('/tables/:id', hostController.updateTable);
+router.patch('/tables/:id/status', hostController.updateTableStatus);
 router.delete('/tables/:id', hostController.deleteTable);
 router.patch('/tables/:id/regenerate-qr', hostController.regenerateQRCode);
 
@@ -45,6 +47,7 @@ router.get('/stores/:storeId/orders/stats', hostController.getOrderStats);
 router.get('/stores/:storeId/orders', hostController.getOrders);
 router.get('/orders/:id', hostController.getOrderById);
 router.patch('/orders/:id/status', hostController.updateOrderStatus);
+router.get('/tables/:tableId/unpaid-orders', hostController.getUnpaidOrdersByTable);
 
 // ========== ANALYTICS ========== 
 router.get('/stores/:storeId/analytics/dashboard', analyticsController.getDashboardOverview);
@@ -55,5 +58,10 @@ router.get('/stores/:storeId/analytics/customers', analyticsController.getCustom
 router.get('/stores/:storeId/analytics/categories', analyticsController.getCategoryPerformance);
 router.get('/stores/:storeId/analytics/tables', analyticsController.getTablePerformance);
 
+// ========== BILLS ========== (NEW)
+router.get('/stores/:storeId/bills', billController.getBills);
+router.post('/stores/:storeId/bills', billController.createBill);
+router.get('/bills/:id', billController.getBillById);
+router.patch('/bills/:id/payment', billController.markBillAsPaid);
 
 export default router;
