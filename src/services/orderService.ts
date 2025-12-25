@@ -76,6 +76,23 @@ class OrderService {
     return order;
   }
 
+  // Get unpaid orders by table for current session
+  async getUnpaidOrdersBySession(
+      tableId: string,
+      session: {
+        startTime: Date;
+        customerPhone?: string;
+        customerName?: string;
+      }
+    ) {
+      return Order.find({
+        tableId,
+        status: 'completed',
+        isPaid: false,
+      }).sort({ createdAt: 1 });
+
+    }
+
   // Get order statistics
   async getOrderStats(storeId: string, filter: { startDate?: Date; endDate?: Date } = {}): Promise<any> {
     // ✅ FIX: Convert storeId to ObjectId

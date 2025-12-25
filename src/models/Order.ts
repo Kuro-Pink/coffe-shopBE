@@ -12,11 +12,14 @@ export interface IOrder extends Document {
   storeId: mongoose.Types.ObjectId;
   tableId: mongoose.Types.ObjectId;
   tableName: string;
+  customerName: string;
   customerPhone: string;
   customerNote: string;
   items: IOrderItem[];
   totalAmount: number;
   status: 'pending' | 'completed' | 'cancelled';
+  isPaid: boolean;
+  paymentMethod?: 'cash' | 'transfer';
   createdAt: Date;
   completedAt?: Date;
 }
@@ -67,6 +70,10 @@ const orderSchema = new Schema<IOrder>(
       type: String,
       required: true,
     },
+    customerName: {
+      type: String,
+      required: true,
+    },
     customerPhone: {
       type: String,
       required: true,
@@ -95,6 +102,14 @@ const orderSchema = new Schema<IOrder>(
       enum: ['pending', 'completed', 'cancelled'],
       default: 'pending',
     },
+     isPaid: {
+      type: Boolean,
+      default: false,
+    },
+    paymentMethod: {
+      type: String,
+      enum: ['cash', 'transfer'],
+    },
     completedAt: {
       type: Date,
     },
@@ -106,6 +121,10 @@ const orderSchema = new Schema<IOrder>(
 
 // Indexes
 orderSchema.index({ storeId: 1, status: 1, createdAt: -1 });
+orderSchema.index({ status: 1 });
+orderSchema.index({ tableId: 1 });
+orderSchema.index({ isPaid: 1 });
+
 
 const Order = mongoose.model<IOrder>('Order', orderSchema);
 export default Order;

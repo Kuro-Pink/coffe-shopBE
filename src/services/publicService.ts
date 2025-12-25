@@ -33,6 +33,7 @@ interface MenuData {
 interface CreateOrderData {
   storeId: string;
   tableId: string;
+  customerName: string;
   customerPhone: string;
   customerNote?: string;
   items: Array<{
@@ -128,6 +129,11 @@ class PublicService {
       throw new ApiError(400, 'Table does not belong to this store');
     }
 
+    // ✅ NEW: Validate customerName
+    if (!data.customerName || data.customerName.trim().length < 2) {
+      throw new ApiError(400, 'Customer name is required (minimum 2 characters)');
+    }
+
     // Validate items
     if (!data.items || data.items.length === 0) {
       throw new ApiError(400, 'Order must have at least one item');
@@ -162,8 +168,6 @@ class PublicService {
 
     // Generate order number
     let orderNumber = generateOrderNumber();
-    
-    // Ensure unique order number
     let existingOrder = await Order.findOne({ orderNumber });
     while (existingOrder) {
       orderNumber = generateOrderNumber();
@@ -175,16 +179,46 @@ class PublicService {
       orderNumber,
       storeId: data.storeId,
       tableId: data.tableId,
-      tableName: `${table.area} - ${table.tableNumber}`,
+      tableName: `${table.tableNumber} - ${table.area}`, 
+      customerName: data.customerName, 
       customerPhone: data.customerPhone,
       customerNote: data.customerNote || '',
       items: orderItems,
       totalAmount,
       status: 'pending',
+      isPaid: false, 
     });
 
-    // ✅ EMIT SOCKET EVENT TO HOST
+    // ✅ NEW: AUTO UPDATE TABLE STATUS & SESSION
+    if (table.status === 'available') {
+      // First order - create new session
+      table.status = 'occupied';
+      table.currentSession = {
+        customerName: data.customerName,
+        customerPhone: data.customerPhone,
+        startTime: new Date(),
+        totalOrders: 1,
+        totalAmount: totalAmount,
+      };
+    } else if (table.status === 'occupied' && table.currentSession) {
+      // Additional order - update existing session
+      table.currentSession.totalOrders += 1;
+      table.currentSession.totalAmount += totalAmount;
+    }
+    
+    await table.save();
+
+    // ✅ EMIT SOCKET EVENTS
     emitNewOrder(data.storeId, order);
+    // ✅ NEW: Emit table status update
+    const io = (global as any).io;
+    if (io) {
+      io.to(data.storeId).emit('table_updated', {
+        tableId: table._id,
+        status: table.status,
+        currentSession: table.currentSession,
+      });
+    }
 
     return order;
   }

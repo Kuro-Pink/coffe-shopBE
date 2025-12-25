@@ -1,5 +1,6 @@
 import Table, { ITable } from '../models/Table';
 import Store from '../models/Store';
+import Order from '../models/Order';
 import { ApiError } from '../utils/ApiError';
 import { generateQRCode, generateMenuUrl } from '../utils/qrcodeGenerator';
 
@@ -52,21 +53,28 @@ class TableService {
       throw new ApiError(400, 'Table number already exists in this store');
     }
 
-    // Create table first (to get ID)
+    // Generate a temporary ID for QR code URL
+    // We'll use the store + tableNumber as a temporary unique identifier
+    const tempId = `${data.storeId}-${data.tableNumber}`;
+    const menuUrl = generateMenuUrl(data.storeId, tempId);
+    const qrCodeDataUrl = await generateQRCode(menuUrl);
+
+    // Create table with QR code
     const table = await Table.create({
       tableNumber: data.tableNumber,
       area: data.area,
       storeId: data.storeId,
-      qrCodeUrl: '', // Will update after generating
+      qrCodeUrl: qrCodeDataUrl,
     });
 
-    // Generate QR code
-    const menuUrl = generateMenuUrl(data.storeId, table._id.toString());
-    const qrCodeDataUrl = await generateQRCode(menuUrl);
-
-    // Update table with QR code
-    table.qrCodeUrl = qrCodeDataUrl;
-    await table.save();
+    // Update QR code with actual table ID if needed
+    const actualMenuUrl = generateMenuUrl(data.storeId, table._id.toString());
+    const actualQrCodeDataUrl = await generateQRCode(actualMenuUrl);
+    
+    if (actualQrCodeDataUrl !== qrCodeDataUrl) {
+      table.qrCodeUrl = actualQrCodeDataUrl;
+      await table.save();
+    }
 
     return table;
   }
@@ -92,6 +100,38 @@ class TableService {
     // Update table
     Object.assign(table, data);
     await table.save();
+
+    return table;
+  }
+
+  // Update table status
+  async updateTableStatus(
+    tableId: string, 
+    status: 'available' | 'occupied' | 'needs_cleaning'
+  ): Promise<ITable> {
+    const table = await Table.findById(tableId);
+    if (!table) {
+      throw new ApiError(404, 'Table not found');
+    }
+
+    table.status = status;
+
+    // ✅ Clear session if setting to available
+    if (status === 'available') {
+      table.currentSession = undefined;
+    }
+
+    await table.save();
+
+    // ✅ Emit socket event
+    const io = (global as any).io;
+    if (io) {
+      io.to(table.storeId.toString()).emit('table_updated', {
+        tableId: table._id,
+        status: table.status,
+        currentSession: table.currentSession,
+      });
+    }
 
     return table;
   }

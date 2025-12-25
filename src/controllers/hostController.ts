@@ -137,6 +137,48 @@ class HostController {
     );
   });
 
+  // Update table status
+  updateTableStatus = catchAsync(async (req: Request, res: Response) => {
+    const { status } = req.body;
+
+    if (!['available', 'occupied', 'needs_cleaning'].includes(status)) {
+      throw new ApiError(
+        400, 
+        'Invalid status. Must be "available", "occupied", or "needs_cleaning"'
+      );
+    }
+
+    const table = await tableService.updateTableStatus(req.params.id, status);
+
+    res.status(200).json(
+      ApiResponse.success(table, 'Table status updated successfully')
+    );
+  });
+
+  // Get unpaid orders by table (for current session only)
+  getUnpaidOrdersByTable = catchAsync(async (req: Request, res: Response) => {
+    const { tableId } = req.params;
+
+    // ✅ Controller gọi tableService
+    const table = await tableService.getTableById(tableId);
+
+    if (!table.currentSession) {
+      return res.status(200).json(
+        ApiResponse.success([], 'No active session for this table')
+      );
+    }
+
+    // ✅ Controller truyền session sang orderService
+    const orders = await orderService.getUnpaidOrdersBySession(
+      tableId,
+      table.currentSession
+    );
+
+    res.status(200).json(
+      ApiResponse.success(orders, 'Unpaid orders retrieved successfully')
+    );
+  });
+
   // Delete table
   deleteTable = catchAsync(async (req: Request, res: Response) => {
     await tableService.deleteTable(req.params.id);

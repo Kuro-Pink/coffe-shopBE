@@ -5,10 +5,19 @@ export interface ITable extends Document {
   area: string;
   storeId: mongoose.Types.ObjectId;
   qrCodeUrl: string;
+  status: 'available' | 'occupied' | 'needs_cleaning'; 
+  currentSession?: { 
+    customerName?: string;
+    customerPhone: string;
+    startTime: Date;
+    totalOrders: number;
+    totalAmount: number;
+  };
   createdAt: Date;
+  updatedAt: Date;
 }
 
-const tableSchema = new Schema<ITable>(
+const TableSchema = new Schema<ITable>(
   {
     tableNumber: {
       type: String,
@@ -28,7 +37,19 @@ const tableSchema = new Schema<ITable>(
     },
     qrCodeUrl: {
       type: String,
-      default: '',
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ['available', 'occupied', 'needs_cleaning'],
+      default: 'available',
+    },
+    currentSession: {
+      customerName: { type: String },
+      customerPhone: { type: String },
+      startTime: { type: Date },
+      totalOrders: { type: Number, default: 0 },
+      totalAmount: { type: Number, default: 0 },
     },
   },
   {
@@ -36,8 +57,8 @@ const tableSchema = new Schema<ITable>(
   }
 );
 
-// Compound index: unique table number per store
-tableSchema.index({ storeId: 1, tableNumber: 1 }, { unique: true });
+// Indexes
+TableSchema.index({ storeId: 1, tableNumber: 1 }, { unique: true });
+TableSchema.index({ status: 1 });
 
-const Table = mongoose.model<ITable>('Table', tableSchema);
-export default Table;
+export default mongoose.model<ITable>('Table', TableSchema);
