@@ -6,7 +6,8 @@ export interface IUser extends Document {
   password: string;
   name: string;
   phone: string;
-  role: 'admin' | 'host';
+  role: 'admin' | 'host' | 'staff';
+  staffType?: 'cashier' | 'bar' | 'kitchen';
   storeId?: mongoose.Types.ObjectId;
   isActive: boolean;
   createdAt: Date;
@@ -41,8 +42,13 @@ const userSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: ['admin', 'host'],
-      default: 'host',
+      enum: ['admin', 'host', 'staff'], 
+      default: 'staff', 
+    },
+     staffType: {
+      type: String,
+      enum: ['cashier', 'bar', 'kitchen'],
+      // Only required if role is 'staff'
     },
     storeId: {
       type: Schema.Types.ObjectId,
@@ -65,9 +71,21 @@ userSchema.pre('save', async function (next) {
   next();
 });
 
+// Validate: if role is staff, staffType is required
+userSchema.pre('save', function (next) {
+  if (this.role === 'staff' && !this.staffType) {
+    next(new Error('Staff type is required for staff role'));
+  } else {
+    next();
+  }
+});
+
 // Compare password method
-userSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
-  return await bcrypt.compare(candidatePassword, this.password);
+userSchema.methods.comparePassword = async function (
+  candidatePassword: string
+): Promise<boolean> {
+  return bcrypt.compare(candidatePassword, this.password);
 };
 
-export default mongoose.model<IUser>('User', userSchema);
+const User = mongoose.models.User || mongoose.model('User', userSchema);
+export default User;

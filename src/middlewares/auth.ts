@@ -44,9 +44,18 @@ export const protect = catchAsync(async (req: Request, res: Response, next: Next
 
 export const authorize = (...roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!roles.includes(req.user.role)) {
-      throw new ApiError(403, `Role ${req.user.role} is not authorized to access this route`);
+    const user = (req as any).user;
+
+    if (!roles.includes(user.role)) {
+      throw new ApiError(403, 'You do not have permission to perform this action');
     }
+
+    // ✅ Staff can only access their own store's data
+    if (user.role === 'staff') {
+      // Attach storeId for validation in controllers
+      (req as any).staffStoreId = user.storeId;
+    }
+
     next();
   };
 };

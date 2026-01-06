@@ -3,6 +3,7 @@ import authRoutes from './authRoutes';
 import adminRoutes from './adminRoutes';
 import hostRoutes from './hostRoutes';
 import publicRoutes from './publicRoutes';
+import staffRoutes from './staffRoutes';
 
 const router = Router();
 
@@ -12,6 +13,7 @@ router.use('/auth', authRoutes);
 router.use('/admin', adminRoutes);
 router.use('/host', hostRoutes);
 router.use('/public', publicRoutes);
+router.use('/staff', staffRoutes);
 
 console.log('✅ All routes registered');
 

@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import Order, { IOrder } from '../models/Order';
 import Store from '../models/Store';
+import User from '../models/User';
 import { ApiError } from '../utils/ApiError';
 import { emitOrderStatusUpdate } from '../utils/socket';
 
@@ -55,22 +56,44 @@ class OrderService {
   }
 
   // Update order status
-  async updateOrderStatus(orderId: string, status: 'completed' | 'cancelled'): Promise<IOrder> {
+  async updateOrderStatus(
+    orderId: string, 
+    status: 'confirmed' | 'completed' | 'cancelled',
+    staffId?: string // ← Add staffId parameter
+  ): Promise<IOrder> {
     const order = await Order.findById(orderId);
     if (!order) {
       throw new ApiError(404, 'Order not found');
     }
 
-    if (order.status !== 'pending') {
+    if (order.status === 'completed' || order.status === 'cancelled') {
       throw new ApiError(400, `Cannot update order with status: ${order.status}`);
     }
 
-    order.status = status;
-    if (status === 'completed') {
-      order.completedAt = new Date();
+    // ========== STAFF TRACKING ==========
+    if (staffId) {
+      const staff = await User.findById(staffId);
+      if (!staff || staff.role !== 'staff') {
+        throw new ApiError(400, 'Invalid staff ID');
+      }
+
+      if (status === 'confirmed' && order.status === 'pending') {
+        order.confirmedBy = staffId as any;
+        order.confirmedAt = new Date();
+      }
+
+      if (status === 'completed') {
+        order.completedBy = staffId as any;
+        order.paidBy = staffId as any; // Same staff who completes also pays
+        order.completedAt = new Date();
+      }
     }
+    // ====================================
+
+    order.status = status;
     await order.save();
 
+    // Emit socket event
     emitOrderStatusUpdate(order.storeId.toString(), order);
 
     return order;

@@ -17,7 +17,11 @@ export interface IOrder extends Document {
   customerNote: string;
   items: IOrderItem[];
   totalAmount: number;
-  status: 'pending' | 'completed' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  confirmedBy?: mongoose.Types.ObjectId; // Staff who confirmed order
+  confirmedAt?: Date;
+  completedBy?: mongoose.Types.ObjectId; // Staff who marked as completed
+  paidBy?: mongoose.Types.ObjectId; // Staff who processed payment
   isPaid: boolean;
   paymentMethod?: 'cash' | 'transfer';
   createdAt: Date;
@@ -99,10 +103,25 @@ const orderSchema = new Schema<IOrder>(
     },
     status: {
       type: String,
-      enum: ['pending', 'completed', 'cancelled'],
+      enum: ['pending', 'confirmed', 'completed', 'cancelled'],
       default: 'pending',
     },
-     isPaid: {
+     confirmedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    confirmedAt: {
+      type: Date,
+    },
+    completedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    paidBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    isPaid: {
       type: Boolean,
       default: false,
     },

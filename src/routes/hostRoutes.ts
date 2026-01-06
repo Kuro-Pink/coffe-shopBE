@@ -3,6 +3,7 @@ import hostController from '../controllers/hostController';
 import analyticsController from '../controllers/analyticsController';
 import storeRequestController from '../controllers/storeRequestController';
 import billController from '../controllers/billController';
+import staffController from '../controllers/staffController';
 import { protect, authorize } from '../middlewares/auth';
 import { upload } from '../middlewares/upload';
 
@@ -63,5 +64,14 @@ router.get('/stores/:storeId/bills', billController.getBills);
 router.post('/stores/:storeId/bills', billController.createBill);
 router.get('/bills/:id', billController.getBillById);
 router.patch('/bills/:id/payment', billController.markBillAsPaid);
+
+// ========== STAFF MANAGEMENT ========== (NEW)
+router.get('/stores/:storeId/staff/stats', staffController.getStaffStats);
+router.get('/stores/:storeId/staff', staffController.getStaff);
+router.post('/stores/:storeId/staff', staffController.createStaff);
+router.get('/staff/:id', staffController.getStaffById);
+router.put('/staff/:id', staffController.updateStaff);
+router.delete('/staff/:id', staffController.deleteStaff);
+router.patch('/staff/:id/toggle-status', staffController.toggleStaffStatus);
 
 export default router;

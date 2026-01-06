@@ -236,17 +236,23 @@ class HostController {
   // Update order status
   updateOrderStatus = catchAsync(async (req: Request, res: Response) => {
     const { status } = req.body;
+    const staffId = (req as any).user._id; // Get staff/host ID from token
 
-    if (!['completed', 'cancelled'].includes(status)) {
-      throw new ApiError(400, 'Invalid status. Must be "completed" or "cancelled"');
+    if (!['confirmed', 'completed', 'cancelled'].includes(status)) {
+      throw new ApiError(400, 'Invalid status');
     }
 
-    const order = await orderService.updateOrderStatus(req.params.id, status);
+    const order = await orderService.updateOrderStatus(
+      req.params.id, 
+      status,
+      staffId // ← Pass staffId
+    );
 
     res.status(200).json(
       ApiResponse.success(order, 'Order status updated successfully')
     );
   });
+
 
   // Get order statistics (WITH DATE FILTER FROM QUERY)
   getOrderStats = catchAsync(async (req: Request, res: Response) => {
