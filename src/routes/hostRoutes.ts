@@ -5,6 +5,7 @@ import storeRequestController from '../controllers/storeRequestController';
 import billController from '../controllers/billController';
 import staffController from '../controllers/staffController';
 import inventoryController from '../controllers/inventoryController';
+import reportController from '../controllers/reportController';
 import { protect, authorize } from '../middlewares/auth';
 import { upload } from '../middlewares/upload';
 
@@ -96,5 +97,13 @@ router.get('/products/:productId/availability', inventoryController.checkProduct
 router.get('/stores/:storeId/inventory/summary', inventoryController.getInventorySummary);
 router.get('/stores/:storeId/inventory/transactions', inventoryController.getInventoryTransactions);
 router.get('/stores/:storeId/inventory/usage-report', inventoryController.getIngredientUsageReport);
+
+// ========== ADVANCED REPORTS ========== (NEW)
+router.get('/stores/:storeId/reports/staff-performance', reportController.getStaffPerformanceReport);
+router.get('/stores/:storeId/reports/peak-hours', reportController.getPeakHoursReport);
+router.get('/stores/:storeId/reports/product-profitability', reportController.getProductProfitabilityReport);
+router.get('/stores/:storeId/reports/sales-summary', reportController.getSalesSummary);
+router.get('/stores/:storeId/reports/customer-insights', reportController.getCustomerInsights);
+router.get('/stores/:storeId/reports/dashboard', reportController.getDashboardData);
 
 export default router;
