@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 import Order, { IOrder } from '../models/Order';
 import Store from '../models/Store';
-import User from '../models/User';
 import { ApiError } from '../utils/ApiError';
+import inventoryService from './inventoryService';
 import { emitOrderStatusUpdate } from '../utils/socket';
 
 interface GetOrdersFilter {
@@ -57,9 +57,9 @@ class OrderService {
 
   // Update order status
   async updateOrderStatus(
-    orderId: string, 
+    orderId: string,
     status: 'confirmed' | 'completed' | 'cancelled',
-    staffId?: string // ← Add staffId parameter
+    staffId?: string
   ): Promise<IOrder> {
     const order = await Order.findById(orderId);
     if (!order) {
@@ -70,30 +70,32 @@ class OrderService {
       throw new ApiError(400, `Cannot update order with status: ${order.status}`);
     }
 
-    // ========== STAFF TRACKING ==========
+    // ========== AUTO DEDUCT STOCK WHEN CONFIRMED ==========
+    if (status === 'confirmed' && order.status === 'pending') {
+      try {
+        await inventoryService.deductStockForOrder(orderId, staffId || 'system');
+        console.log(`✅ Stock deducted for order ${order.orderNumber}`);
+      } catch (error: any) {
+        // If insufficient stock, throw error and don't confirm order
+        throw new ApiError(400, error.message);
+      }
+
+      order.confirmedBy = staffId as any;
+      order.confirmedAt = new Date();
+    }
+    // ======================================================
+
     if (staffId) {
-      const staff = await User.findById(staffId);
-      if (!staff || staff.role !== 'staff') {
-        throw new ApiError(400, 'Invalid staff ID');
-      }
-
-      if (status === 'confirmed' && order.status === 'pending') {
-        order.confirmedBy = staffId as any;
-        order.confirmedAt = new Date();
-      }
-
       if (status === 'completed') {
         order.completedBy = staffId as any;
-        order.paidBy = staffId as any; // Same staff who completes also pays
+        order.paidBy = staffId as any;
         order.completedAt = new Date();
       }
     }
-    // ====================================
 
     order.status = status;
     await order.save();
 
-    // Emit socket event
     emitOrderStatusUpdate(order.storeId.toString(), order);
 
     return order;

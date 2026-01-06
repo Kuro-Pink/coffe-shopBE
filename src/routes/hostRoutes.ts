@@ -4,6 +4,7 @@ import analyticsController from '../controllers/analyticsController';
 import storeRequestController from '../controllers/storeRequestController';
 import billController from '../controllers/billController';
 import staffController from '../controllers/staffController';
+import inventoryController from '../controllers/inventoryController';
 import { protect, authorize } from '../middlewares/auth';
 import { upload } from '../middlewares/upload';
 
@@ -73,5 +74,27 @@ router.get('/staff/:id', staffController.getStaffById);
 router.put('/staff/:id', staffController.updateStaff);
 router.delete('/staff/:id', staffController.deleteStaff);
 router.patch('/staff/:id/toggle-status', staffController.toggleStaffStatus);
+
+// ========== INVENTORY MANAGEMENT ========== (NEW)
+
+// Ingredients CRUD
+router.get('/stores/:storeId/ingredients', inventoryController.getIngredients);
+router.post('/stores/:storeId/ingredients', inventoryController.createIngredient);
+router.get('/ingredients/:id', inventoryController.getIngredientById);
+router.put('/ingredients/:id', inventoryController.updateIngredient);
+router.delete('/ingredients/:id', inventoryController.deleteIngredient);
+
+// Stock management
+router.post('/ingredients/:id/adjust-stock', inventoryController.adjustStock);
+
+// Product recipe
+router.get('/products/:productId/recipe', inventoryController.getProductRecipe);
+router.put('/products/:productId/recipe', inventoryController.setProductRecipe);
+router.get('/products/:productId/availability', inventoryController.checkProductAvailability);
+
+// Reports
+router.get('/stores/:storeId/inventory/summary', inventoryController.getInventorySummary);
+router.get('/stores/:storeId/inventory/transactions', inventoryController.getInventoryTransactions);
+router.get('/stores/:storeId/inventory/usage-report', inventoryController.getIngredientUsageReport);
 
 export default router;
