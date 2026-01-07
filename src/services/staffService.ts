@@ -1,6 +1,7 @@
 import User, { IUser } from '../models/User';
 import Store from '../models/Store';
 import { ApiError } from '../utils/ApiError';
+import mongoose from 'mongoose';
 
 interface CreateStaffData {
   name: string;
@@ -131,19 +132,21 @@ class StaffService {
 
   // Get staff statistics
   async getStaffStats(storeId: string): Promise<any> {
+    const storeObjectId = new mongoose.Types.ObjectId(storeId);
+
     const totalStaff = await User.countDocuments({
-      storeId,
+      storeId: storeObjectId,
       role: 'staff',
     });
 
     const activeStaff = await User.countDocuments({
-      storeId,
+      storeId: storeObjectId,
       role: 'staff',
       isActive: true,
     });
 
     const staffByType = await User.aggregate([
-      { $match: { storeId: storeId, role: 'staff' } },
+      { $match: { storeId: storeObjectId, role: 'staff' } },
       { $group: { _id: '$staffType', count: { $sum: 1 } } },
     ]);
 

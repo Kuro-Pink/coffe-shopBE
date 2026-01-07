@@ -1,36 +1,50 @@
-import express, { Application } from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import morgan from 'morgan';
-import routes from './routes';
-import { errorHandler, notFound } from './middlewares/errorHandler';
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import routes from "./routes";
+import { errorHandler, notFound } from "./middlewares/errorHandler";
 
-const app: Application = express();
+const app = express();
 
-// Security Middleware
-app.use(helmet());
-
-// CORS
+/* ================== CORS PHẢI ĐỨNG ĐẦU ================== */
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: [
+      "http://localhost:3000",
+      "https://coffee-shop-frontend-production.up.railway.app",
+    ],
     credentials: true,
   })
 );
 
-// Body Parser
+/* ✅ CHO PHÉP PREFLIGHT */
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+  next();
+});
+
+/* ================== SAU ĐÓ MỚI HELMET ================== */
+app.use(helmet());
+
+/* ================== BODY ================== */
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Logging
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
+if (process.env.NODE_ENV === "development") {
+  app.use(morgan("dev"));
 }
 
-// Routes
-app.use('/api/v1', routes);
+/* ================== ROUTES ================== */
+app.get("/", (_req, res) => {
+  res.json({ status: "ok" });
+});
 
-// Error Handling
+app.use("/api/v1", routes);
+
+/* ================== ERROR ================== */
 app.use(notFound);
 app.use(errorHandler);
 

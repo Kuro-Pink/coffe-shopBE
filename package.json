@@ -5,7 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon --exec ts-node ts-node-dev --respawn --transpile-only src/server.ts",
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "start:prod": "NODE_ENV=production node dist/server.js",
@@ -27,6 +27,7 @@
     "express-validator": "^7.3.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.21.0",
     "mongoose": "^8.20.1",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
