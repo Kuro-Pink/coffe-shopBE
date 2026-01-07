@@ -13,8 +13,8 @@ router.use(authorize('staff')); // Only staff can access
 
 // Get orders (staff sees all orders in their store)
 router.get('/store/:storeId/orders', hostController.getOrders);
-router.get('/store/:storeId/orders/:id', hostController.getOrderById);
+router.get('/orders/:id', hostController.getOrderById);
 
 // Update order status (with staff tracking)
-router.patch('/store/:storeId/orders/:id/status', hostController.updateOrderStatus);
+router.patch('/orders/:id/status', hostController.updateOrderStatus);
 export default router;
