@@ -88,7 +88,7 @@ class InventoryService {
     const ingredient = await Ingredient.findByIdAndUpdate(
       ingredientId,
       { $set: data },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!ingredient) {
@@ -110,7 +110,7 @@ class InventoryService {
     if (usedInProducts > 0) {
       throw new ApiError(
         400,
-        `Cannot delete ingredient that is used in ${usedInProducts} product(s)`
+        `Cannot delete ingredient that is used in ${usedInProducts} product(s)`,
       );
     }
 
@@ -177,7 +177,7 @@ class InventoryService {
         if (ingredient.quantity < amountNeeded) {
           throw new ApiError(
             400,
-            `Insufficient stock for ${ingredient.name}. Need ${amountNeeded} ${ingredient.unit}, only have ${ingredient.quantity} ${ingredient.unit}`
+            `Insufficient stock for ${ingredient.name}. Need ${amountNeeded} ${ingredient.unit}, only have ${ingredient.quantity} ${ingredient.unit}`,
           );
         }
 
@@ -328,7 +328,7 @@ class InventoryService {
   // Get inventory transactions (history)
   async getInventoryTransactions(
     storeId: string,
-    filter: { ingredientId?: string; startDate?: Date; endDate?: Date } = {}
+    filter: { ingredientId?: string; startDate?: Date; endDate?: Date } = {},
   ): Promise<any[]> {
     const query: any = { storeId };
 
@@ -355,10 +355,13 @@ class InventoryService {
   // Get ingredient usage report (most used)
   async getIngredientUsageReport(
     storeId: string,
-    filter: { startDate?: Date; endDate?: Date } = {}
+    filter: { startDate?: Date; endDate?: Date } = {},
   ): Promise<any[]> {
+    // ✅ Convert to ObjectId
+    const storeObjectId = new mongoose.Types.ObjectId(storeId);
+
     const query: any = {
-      storeId,
+      storeId: storeObjectId, // ← Must be ObjectId!
       type: 'out',
     };
 
@@ -366,6 +369,12 @@ class InventoryService {
       query.createdAt = {};
       if (filter.startDate) query.createdAt.$gte = filter.startDate;
       if (filter.endDate) query.createdAt.$lte = filter.endDate;
+    }
+
+    const totalTransactions = await InventoryTransaction.countDocuments(query);
+    if (totalTransactions === 0) {
+      console.log('⚠️ No inventory transactions found!');
+      return [];
     }
 
     const usage = await InventoryTransaction.aggregate([
@@ -398,6 +407,8 @@ class InventoryService {
         },
       },
     ]);
+
+    console.log('📊 Usage report:', usage);
 
     return usage;
   }
