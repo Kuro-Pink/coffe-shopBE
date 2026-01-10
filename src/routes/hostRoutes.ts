@@ -11,12 +11,16 @@ import { upload } from '../middlewares/upload';
 
 const router = Router();
 
-// Protect all routes - only host can access
 router.use(protect);
-router.use(authorize('host'));
+router.get('/stores/:storeId/orders', authorize('host', 'staff'), hostController.getOrders);
+router.use(authorize('host')); // Only host can access
 
 // ========== STORE REQUESTS ========== (NEW)
-router.post('/store-requests', upload.single('storeLogo'), storeRequestController.createStoreRequest);
+router.post(
+  '/store-requests',
+  upload.single('storeLogo'),
+  storeRequestController.createStoreRequest,
+);
 router.get('/store-requests/my-requests', storeRequestController.getMyStoreRequests);
 
 // ========== CATEGORIES ==========
@@ -34,7 +38,7 @@ router.put('/products/:id', upload.single('image'), hostController.updateProduct
 router.delete('/products/:id', hostController.deleteProduct);
 router.patch('/products/:id/toggle-availability', hostController.toggleProductAvailability);
 
-// ========== TABLES ========== 
+// ========== TABLES ==========
 router.get('/stores/:storeId/tables/stats', hostController.getTableStats);
 router.get('/stores/:storeId/tables', hostController.getTables);
 router.post('/stores/:storeId/tables', hostController.createTable);
@@ -44,15 +48,14 @@ router.patch('/tables/:id/status', hostController.updateTableStatus);
 router.delete('/tables/:id', hostController.deleteTable);
 router.patch('/tables/:id/regenerate-qr', hostController.regenerateQRCode);
 
-// ========== ORDERS ========== 
+// ========== ORDERS ==========
 router.get('/stores/:storeId/orders/today', hostController.getTodayStats);
 router.get('/stores/:storeId/orders/stats', hostController.getOrderStats);
-router.get('/stores/:storeId/orders', hostController.getOrders);
 router.get('/orders/:id', hostController.getOrderById);
 router.patch('/orders/:id/status', hostController.updateOrderStatus);
 router.get('/tables/:tableId/unpaid-orders', hostController.getUnpaidOrdersByTable);
 
-// ========== ANALYTICS ========== 
+// ========== ANALYTICS ==========
 router.get('/stores/:storeId/analytics/dashboard', analyticsController.getDashboardOverview);
 router.get('/stores/:storeId/analytics/revenue-trends', analyticsController.getRevenueTrends);
 router.get('/stores/:storeId/analytics/peak-hours', analyticsController.getPeakHours);
@@ -99,9 +102,15 @@ router.get('/stores/:storeId/inventory/transactions', inventoryController.getInv
 router.get('/stores/:storeId/inventory/usage-report', inventoryController.getIngredientUsageReport);
 
 // ========== ADVANCED REPORTS ========== (NEW)
-router.get('/stores/:storeId/reports/staff-performance', reportController.getStaffPerformanceReport);
+router.get(
+  '/stores/:storeId/reports/staff-performance',
+  reportController.getStaffPerformanceReport,
+);
 router.get('/stores/:storeId/reports/peak-hours', reportController.getPeakHoursReport);
-router.get('/stores/:storeId/reports/product-profitability', reportController.getProductProfitabilityReport);
+router.get(
+  '/stores/:storeId/reports/product-profitability',
+  reportController.getProductProfitabilityReport,
+);
 router.get('/stores/:storeId/reports/sales-summary', reportController.getSalesSummary);
 router.get('/stores/:storeId/reports/customer-insights', reportController.getCustomerInsights);
 router.get('/stores/:storeId/reports/dashboard', reportController.getDashboardData);

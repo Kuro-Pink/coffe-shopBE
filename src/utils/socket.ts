@@ -23,22 +23,22 @@ export const initSocket = (httpServer: HttpServer): SocketServer => {
   io.use(async (socket: any, next) => {
     try {
       const token = socket.handshake.auth.token;
-      
+
       if (!token) {
         return next(new Error('Authentication token required'));
       }
 
       // Verify JWT
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
-      
+
       // Get user
       const user = await User.findById(decoded.id);
       if (!user) {
         return next(new Error('User not found'));
       }
 
-      // Allow host & admin
-      if (!['host', 'admin'].includes(user.role)) {
+      // Allow host, admin, and staff
+      if (!['host', 'admin', 'staff'].includes(user.role)) {
         return next(new Error('Unauthorized role'));
       }
 
@@ -48,7 +48,7 @@ export const initSocket = (httpServer: HttpServer): SocketServer => {
       socket.storeId = user.storeId?.toString();
 
       console.log(`✅ Host connected: ${user.email} (Store: ${socket.storeId})`);
-      
+
       next();
     } catch (error) {
       console.error('Socket authentication error:', error);

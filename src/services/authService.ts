@@ -7,7 +7,7 @@ interface RegisterData {
   password: string;
   name: string;
   phone: string;
-  role: 'admin' | 'host';
+  role: 'admin' | 'host' | 'staff';
   storeId?: string;
 }
 
@@ -19,11 +19,11 @@ interface LoginData {
 class AuthService {
   generateToken(id: string, role: string): string {
     return jwt.sign(
-      { id, role }, 
-      process.env.JWT_SECRET as string, 
+      { id, role },
+      process.env.JWT_SECRET as string,
       {
         expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-      } as jwt.SignOptions
+      } as jwt.SignOptions,
     );
   }
 
@@ -41,7 +41,7 @@ class AuthService {
 
   async login(data: LoginData): Promise<{ user: IUser; token: string }> {
     const user = await User.findOne({ email: data.email }).select('+password');
-    
+
     if (!user || !(await user.comparePassword(data.password))) {
       throw new ApiError(401, 'Invalid email or password');
     }
