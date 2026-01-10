@@ -58,8 +58,8 @@ class OrderService {
   // Update order status
   async updateOrderStatus(
     orderId: string,
-    status: 'confirmed' | 'completed' | 'cancelled',
-    staffId?: string
+    status: 'completed' | 'cancelled',
+    staffId?: string,
   ): Promise<IOrder> {
     const order = await Order.findById(orderId);
     if (!order) {
@@ -71,7 +71,7 @@ class OrderService {
     }
 
     // ========== AUTO DEDUCT STOCK WHEN CONFIRMED ==========
-    if (status === 'confirmed' && order.status === 'pending') {
+    if (order.status === 'pending') {
       try {
         await inventoryService.deductStockForOrder(orderId, staffId || 'system');
         console.log(`✅ Stock deducted for order ${order.orderNumber}`);
@@ -103,26 +103,28 @@ class OrderService {
 
   // Get unpaid orders by table for current session
   async getUnpaidOrdersBySession(
-      tableId: string,
-      session: {
-        startTime: Date;
-        customerPhone?: string;
-        customerName?: string;
-      }
-    ) {
-      return Order.find({
-        tableId,
-        status: 'completed',
-        isPaid: false,
-      }).sort({ createdAt: 1 });
-
-    }
+    tableId: string,
+    session: {
+      startTime: Date;
+      customerPhone?: string;
+      customerName?: string;
+    },
+  ) {
+    return Order.find({
+      tableId,
+      status: 'completed',
+      isPaid: false,
+    }).sort({ createdAt: 1 });
+  }
 
   // Get order statistics
-  async getOrderStats(storeId: string, filter: { startDate?: Date; endDate?: Date } = {}): Promise<any> {
+  async getOrderStats(
+    storeId: string,
+    filter: { startDate?: Date; endDate?: Date } = {},
+  ): Promise<any> {
     // ✅ FIX: Convert storeId to ObjectId
     const storeObjectId = new mongoose.Types.ObjectId(storeId);
-    
+
     const query: any = { storeId: storeObjectId };
 
     // Apply date filter
@@ -141,7 +143,7 @@ class OrderService {
     // Total orders
     const totalOrders = await Order.countDocuments(query);
     console.log('📊 Total orders:', totalOrders);
-    
+
     // Orders by status
     const ordersByStatusArray = await Order.aggregate([
       { $match: query },
@@ -194,15 +196,15 @@ class OrderService {
     }
 
     const revenueByDay = await Order.aggregate([
-      { 
-        $match: { 
+      {
+        $match: {
           storeId: storeObjectId, // ✅ Use ObjectId here too
           status: 'completed',
-          createdAt: { 
+          createdAt: {
             $gte: dateRangeStart,
-            ...(filter.endDate && { $lte: filter.endDate })
-          }
-        } 
+            ...(filter.endDate && { $lte: filter.endDate }),
+          },
+        },
       },
       {
         $group: {

@@ -17,7 +17,7 @@ export interface IOrder extends Document {
   customerNote: string;
   items: IOrderItem[];
   totalAmount: number;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  status: 'pending' | 'completed' | 'cancelled';
   confirmedBy?: mongoose.Types.ObjectId; // Staff who confirmed order
   confirmedAt?: Date;
   completedBy?: mongoose.Types.ObjectId; // Staff who marked as completed
@@ -50,7 +50,7 @@ const orderItemSchema = new Schema<IOrderItem>(
       min: 1,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const orderSchema = new Schema<IOrder>(
@@ -106,7 +106,7 @@ const orderSchema = new Schema<IOrder>(
       enum: ['pending', 'confirmed', 'completed', 'cancelled'],
       default: 'pending',
     },
-     confirmedBy: {
+    confirmedBy: {
       type: Schema.Types.ObjectId,
       ref: 'User',
     },
@@ -135,7 +135,7 @@ const orderSchema = new Schema<IOrder>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Indexes
@@ -143,7 +143,6 @@ orderSchema.index({ storeId: 1, status: 1, createdAt: -1 });
 orderSchema.index({ status: 1 });
 orderSchema.index({ tableId: 1 });
 orderSchema.index({ isPaid: 1 });
-
 
 const Order = mongoose.model<IOrder>('Order', orderSchema);
 export default Order;
