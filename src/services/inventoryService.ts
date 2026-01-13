@@ -402,6 +402,7 @@ class InventoryService {
           ingredientId: '$_id',
           name: '$ingredient.name',
           unit: '$ingredient.unit',
+          cost: '$ingredient.cost',
           totalUsed: 1,
           timesUsed: 1,
         },

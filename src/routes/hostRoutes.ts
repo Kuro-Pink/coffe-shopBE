@@ -12,7 +12,26 @@ import { upload } from '../middlewares/upload';
 const router = Router();
 
 router.use(protect);
+router.use(authorize('host', 'staff'));
+router.get('/stores/:storeId/tables/stats', hostController.getTableStats);
+router.get('/stores/:storeId/tables', hostController.getTables);
+router.get('/tables/:id', hostController.getTableById);
+router.patch('/tables/:id/regenerate-qr', hostController.regenerateQRCode);
+
+// ========== ORDERS ==========
 router.get('/stores/:storeId/orders', authorize('host', 'staff'), hostController.getOrders);
+router.get('/stores/:storeId/orders/today', hostController.getTodayStats);
+router.get('/stores/:storeId/orders/stats', hostController.getOrderStats);
+router.get('/orders/:id', hostController.getOrderById);
+router.patch('/orders/:id/status', hostController.updateOrderStatus);
+router.get('/tables/:tableId/unpaid-orders', hostController.getUnpaidOrdersByTable);
+
+// ========== BILLS ========== (NEW)
+router.get('/stores/:storeId/bills', billController.getBills);
+router.post('/stores/:storeId/bills', billController.createBill);
+router.get('/bills/:id', billController.getBillById);
+router.patch('/bills/:id/payment', billController.markBillAsPaid);
+
 router.use(authorize('host')); // Only host can access
 
 // ========== STORE REQUESTS ========== (NEW)
@@ -39,21 +58,10 @@ router.delete('/products/:id', hostController.deleteProduct);
 router.patch('/products/:id/toggle-availability', hostController.toggleProductAvailability);
 
 // ========== TABLES ==========
-router.get('/stores/:storeId/tables/stats', hostController.getTableStats);
-router.get('/stores/:storeId/tables', hostController.getTables);
 router.post('/stores/:storeId/tables', hostController.createTable);
-router.get('/tables/:id', hostController.getTableById);
 router.put('/tables/:id', hostController.updateTable);
 router.patch('/tables/:id/status', hostController.updateTableStatus);
 router.delete('/tables/:id', hostController.deleteTable);
-router.patch('/tables/:id/regenerate-qr', hostController.regenerateQRCode);
-
-// ========== ORDERS ==========
-router.get('/stores/:storeId/orders/today', hostController.getTodayStats);
-router.get('/stores/:storeId/orders/stats', hostController.getOrderStats);
-router.get('/orders/:id', hostController.getOrderById);
-router.patch('/orders/:id/status', hostController.updateOrderStatus);
-router.get('/tables/:tableId/unpaid-orders', hostController.getUnpaidOrdersByTable);
 
 // ========== ANALYTICS ==========
 router.get('/stores/:storeId/analytics/dashboard', analyticsController.getDashboardOverview);
@@ -63,12 +71,6 @@ router.get('/stores/:storeId/analytics/best-sellers', analyticsController.getBes
 router.get('/stores/:storeId/analytics/customers', analyticsController.getCustomerInsights);
 router.get('/stores/:storeId/analytics/categories', analyticsController.getCategoryPerformance);
 router.get('/stores/:storeId/analytics/tables', analyticsController.getTablePerformance);
-
-// ========== BILLS ========== (NEW)
-router.get('/stores/:storeId/bills', billController.getBills);
-router.post('/stores/:storeId/bills', billController.createBill);
-router.get('/bills/:id', billController.getBillById);
-router.patch('/bills/:id/payment', billController.markBillAsPaid);
 
 // ========== STAFF MANAGEMENT ========== (NEW)
 router.get('/stores/:storeId/staff/stats', staffController.getStaffStats);
