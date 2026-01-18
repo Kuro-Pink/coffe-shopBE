@@ -6,6 +6,7 @@ import billController from '../controllers/billController';
 import staffController from '../controllers/staffController';
 import inventoryController from '../controllers/inventoryController';
 import reportController from '../controllers/reportController';
+import shiftController from '../controllers/shiftController';
 import { protect, authorize } from '../middlewares/auth';
 import { upload } from '../middlewares/upload';
 
@@ -13,9 +14,11 @@ const router = Router();
 
 router.use(protect);
 router.use(authorize('host', 'staff'));
+// ========== TABLES ==========
 router.get('/stores/:storeId/tables/stats', hostController.getTableStats);
 router.get('/stores/:storeId/tables', hostController.getTables);
 router.get('/tables/:id', hostController.getTableById);
+router.patch('/tables/:id/status', hostController.updateTableStatus);
 router.patch('/tables/:id/regenerate-qr', hostController.regenerateQRCode);
 
 // ========== ORDERS ==========
@@ -31,6 +34,8 @@ router.get('/stores/:storeId/bills', billController.getBills);
 router.post('/stores/:storeId/bills', billController.createBill);
 router.get('/bills/:id', billController.getBillById);
 router.patch('/bills/:id/payment', billController.markBillAsPaid);
+
+router.get('/shifts/:shiftId/report', shiftController.getShiftReport);
 
 router.use(authorize('host')); // Only host can access
 
@@ -60,7 +65,6 @@ router.patch('/products/:id/toggle-availability', hostController.toggleProductAv
 // ========== TABLES ==========
 router.post('/stores/:storeId/tables', hostController.createTable);
 router.put('/tables/:id', hostController.updateTable);
-router.patch('/tables/:id/status', hostController.updateTableStatus);
 router.delete('/tables/:id', hostController.deleteTable);
 
 // ========== ANALYTICS ==========
@@ -116,5 +120,11 @@ router.get(
 router.get('/stores/:storeId/reports/sales-summary', reportController.getSalesSummary);
 router.get('/stores/:storeId/reports/customer-insights', reportController.getCustomerInsights);
 router.get('/stores/:storeId/reports/dashboard', reportController.getDashboardData);
+
+// ========== SHIFTS MANAGEMENT (Host monitoring) ==========
+router.get('/stores/:storeId/shifts', shiftController.getAllShifts);
+router.get('/stores/:storeId/shifts/active', shiftController.getActiveShifts);
+router.get('/stores/:storeId/shifts/stats', shiftController.getShiftSummaryStats);
+router.get('/staff/:staffId/shifts', shiftController.getStaffShiftHistory);
 
 export default router;
