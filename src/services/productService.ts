@@ -32,7 +32,7 @@ class ProductService {
     }
 
     const query: any = { storeId };
-    
+
     // Filter by category
     if (filter.categoryId) {
       query.categoryId = filter.categoryId;
@@ -119,18 +119,21 @@ class ProductService {
     }
 
     // Upload new image if provided
+    // Upload new image if provided
     if (data.image) {
-      // Delete old image if exists
       if (product.image) {
         const publicId = product.image.split('/').slice(-2).join('/').split('.')[0];
         await deleteFromCloudinary(publicId);
       }
 
       const uploadResult = await uploadToCloudinary(data.image, 'products');
-      (data as any).image = uploadResult.url;
+      product.image = uploadResult.url;
     }
 
-    // Update product
+    // ❗ XÓA image KHỎI data để tránh overwrite
+    delete (data as any).image;
+
+    // Update other fields
     Object.assign(product, data);
     await product.save();
 
