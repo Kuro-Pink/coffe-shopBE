@@ -24,16 +24,62 @@ interface CheckOutData {
 }
 
 class ShiftService {
+  private async calculateRealtimeShiftStats(
+    shiftId: string,
+    checkInTime: Date,
+    staffId: mongoose.Types.ObjectId,
+    storeId: mongoose.Types.ObjectId,
+  ) {
+    const orders = await Order.find({
+      storeId,
+      createdAt: { $gte: checkInTime, $lte: new Date() },
+    });
+
+    const ordersProcessed = orders.length;
+    const ordersCompleted = orders.filter((o) => o.status === 'completed').length;
+    const ordersCancelled = orders.filter((o) => o.status === 'cancelled').length;
+
+    const cashCollected = orders
+      .filter((o) => o.paymentMethod === 'cash' && o.status === 'completed')
+      .reduce((s, o) => s + o.totalAmount, 0);
+
+    const transferCollected = orders
+      .filter((o) => o.paymentMethod === 'transfer' && o.status === 'completed')
+      .reduce((s, o) => s + o.totalAmount, 0);
+
+    const systemRevenue = cashCollected + transferCollected;
+
+    return {
+      ordersProcessed,
+      ordersCompleted,
+      ordersCancelled,
+      cashCollected,
+      transferCollected,
+      systemRevenue,
+    };
+  }
+
   // Get current active shift for staff
-  async getCurrentShift(staffId: string): Promise<IShift | null> {
-    const shift = await Shift.findOne({
-      staffId,
-      status: 'active',
-    })
+  async getCurrentShift(staffId: string): Promise<any> {
+    const shift = await Shift.findOne({ staffId, status: 'active' })
       .populate('staffId', 'name email staffType')
       .populate('storeId', 'name');
 
-    return shift;
+    if (!shift) return null;
+
+    const stats = await this.calculateRealtimeShiftStats(
+      shift._id.toString(),
+      shift.checkInTime,
+      shift.staffId as any,
+      shift.storeId as any,
+    );
+
+    return {
+      ...shift.toObject(),
+      ...stats,
+      totalRevenue: stats.systemRevenue,
+      discrepancy: 0, // đang làm thì chưa so sánh
+    };
   }
 
   // Check in (start shift)
@@ -75,41 +121,46 @@ class ShiftService {
   }
 
   // Check out (end shift and calculate performance)
-  async checkOut(data: CheckOutData): Promise<IShift> {
+  async checkOut(data: CheckOutData): Promise<any> {
     const shift = await Shift.findOne({
       staffId: data.staffId,
       status: 'active',
-    });
+    }).populate('staffId', 'name email staffType');
 
     if (!shift) {
-      throw new ApiError(404, 'No active shift found for this staff');
+      throw new ApiError(404, 'No active shift found');
     }
 
     const checkOutTime = new Date();
     const hoursWorked = (checkOutTime.getTime() - shift.checkInTime.getTime()) / (1000 * 60 * 60);
 
-    // Calculate performance metrics
-    const performance = await this.calculateShiftPerformance(
+    const stats = await this.calculateRealtimeShiftStats(
       shift._id.toString(),
       shift.checkInTime,
-      checkOutTime,
+      shift.staffId as any,
+      shift.storeId as any,
     );
 
-    // Update shift
+    const totalRevenue = stats.cashCollected + stats.transferCollected;
+    const discrepancy = totalRevenue - stats.systemRevenue;
+
     shift.checkOutTime = checkOutTime;
     shift.status = 'completed';
     shift.hoursWorked = Number(hoursWorked.toFixed(2));
-    shift.ordersProcessed = performance.ordersProcessed;
-    shift.totalRevenue = performance.totalRevenue;
-    shift.averageOrderValue = performance.averageOrderValue;
-    shift.checkOutLocation = data.location;
-    if (data.notes) shift.notes = shift.notes ? `${shift.notes}\n${data.notes}` : data.notes;
+    shift.ordersProcessed = stats.ordersProcessed;
+    shift.totalRevenue = totalRevenue;
+    shift.averageOrderValue =
+      stats.ordersCompleted > 0 ? Math.round(totalRevenue / stats.ordersCompleted) : 0;
 
     await shift.save();
-    await shift.populate('staffId', 'name email staffType');
-    await shift.populate('storeId', 'name');
 
-    return shift;
+    return {
+      ...shift.toObject(),
+      ...stats,
+      totalRevenue,
+      systemRevenue: stats.systemRevenue,
+      discrepancy,
+    };
   }
 
   // Calculate shift performance
