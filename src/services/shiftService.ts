@@ -148,9 +148,17 @@ class ShiftService {
     shift.status = 'completed';
     shift.hoursWorked = Number(hoursWorked.toFixed(2));
     shift.ordersProcessed = stats.ordersProcessed;
-    shift.totalRevenue = totalRevenue;
+    shift.ordersCompleted = stats.ordersCompleted;
+    shift.ordersCancelled = stats.ordersCancelled;
+
+    shift.cashCollected = stats.cashCollected;
+    shift.transferCollected = stats.transferCollected;
+    shift.systemRevenue = stats.systemRevenue;
+
+    shift.totalRevenue = stats.systemRevenue; // alias cho FE cũ
+
     shift.averageOrderValue =
-      stats.ordersCompleted > 0 ? Math.round(totalRevenue / stats.ordersCompleted) : 0;
+      stats.ordersCompleted > 0 ? Math.round(stats.systemRevenue / stats.ordersCompleted) : 0;
 
     await shift.save();
 
@@ -292,12 +300,20 @@ class ShiftService {
       store: shift.storeId,
       performance: {
         ordersProcessed: shift.ordersProcessed,
-        totalRevenue: shift.totalRevenue,
+        ordersCompleted: shift.ordersCompleted,
+        ordersCancelled: shift.ordersCancelled,
+
+        cashCollected: shift.cashCollected,
+        transferCollected: shift.transferCollected,
+        systemRevenue: shift.systemRevenue,
+
         averageOrderValue: shift.averageOrderValue,
+
         ordersPerHour: shift.hoursWorked
-          ? Number((shift.ordersProcessed! / shift.hoursWorked).toFixed(2))
+          ? Number((shift.ordersCompleted! / shift.hoursWorked).toFixed(2))
           : 0,
       },
+
       orders: orders.map((o) => ({
         _id: o._id,
         orderNumber: o.orderNumber,
@@ -332,19 +348,34 @@ class ShiftService {
 
     const totalShifts = shifts.length;
     const totalHoursWorked = shifts.reduce((sum, s) => sum + (s.hoursWorked || 0), 0);
-    const totalOrdersProcessed = shifts.reduce((sum, s) => sum + (s.ordersProcessed || 0), 0);
-    const totalRevenue = shifts.reduce((sum, s) => sum + (s.totalRevenue || 0), 0);
+    const totalOrdersProcessed = shifts.reduce((s, x) => s + (x.ordersProcessed || 0), 0);
+    const totalOrdersCompleted = shifts.reduce((s, x) => s + (x.ordersCompleted || 0), 0);
+    const totalOrdersCancelled = shifts.reduce((s, x) => s + (x.ordersCancelled || 0), 0);
+
+    const totalCashCollected = shifts.reduce((s, x) => s + (x.cashCollected || 0), 0);
+    const totalTransferCollected = shifts.reduce((s, x) => s + (x.transferCollected || 0), 0);
+    const totalSystemRevenue = shifts.reduce((s, x) => s + (x.systemRevenue || 0), 0);
 
     return {
       totalShifts,
       totalHoursWorked: Number(totalHoursWorked.toFixed(2)),
+
       totalOrdersProcessed,
-      totalRevenue,
+      totalOrdersCompleted,
+      totalOrdersCancelled,
+
+      totalCashCollected,
+      totalTransferCollected,
+      totalSystemRevenue,
+
       averageHoursPerShift:
         totalShifts > 0 ? Number((totalHoursWorked / totalShifts).toFixed(2)) : 0,
+
       averageOrdersPerShift:
-        totalShifts > 0 ? Number((totalOrdersProcessed / totalShifts).toFixed(1)) : 0,
-      averageRevenuePerShift: totalShifts > 0 ? Number((totalRevenue / totalShifts).toFixed(0)) : 0,
+        totalShifts > 0 ? Number((totalOrdersCompleted / totalShifts).toFixed(1)) : 0,
+
+      averageRevenuePerShift:
+        totalShifts > 0 ? Number((totalSystemRevenue / totalShifts).toFixed(0)) : 0,
     };
   }
 
@@ -365,19 +396,34 @@ class ShiftService {
 
     const totalShifts = shifts.length;
     const totalHoursWorked = shifts.reduce((sum, s) => sum + (s.hoursWorked || 0), 0);
-    const totalOrdersProcessed = shifts.reduce((sum, s) => sum + (s.ordersProcessed || 0), 0);
-    const totalRevenue = shifts.reduce((sum, s) => sum + (s.totalRevenue || 0), 0);
+    const totalOrdersProcessed = shifts.reduce((s, x) => s + (x.ordersProcessed || 0), 0);
+    const totalOrdersCompleted = shifts.reduce((s, x) => s + (x.ordersCompleted || 0), 0);
+    const totalOrdersCancelled = shifts.reduce((s, x) => s + (x.ordersCancelled || 0), 0);
+
+    const totalCashCollected = shifts.reduce((s, x) => s + (x.cashCollected || 0), 0);
+    const totalTransferCollected = shifts.reduce((s, x) => s + (x.transferCollected || 0), 0);
+    const totalSystemRevenue = shifts.reduce((s, x) => s + (x.systemRevenue || 0), 0);
 
     return {
       totalShifts,
       totalHoursWorked: Number(totalHoursWorked.toFixed(2)),
+
       totalOrdersProcessed,
-      totalRevenue,
+      totalOrdersCompleted,
+      totalOrdersCancelled,
+
+      totalCashCollected,
+      totalTransferCollected,
+      totalSystemRevenue,
+
       averageHoursPerShift:
         totalShifts > 0 ? Number((totalHoursWorked / totalShifts).toFixed(2)) : 0,
+
       averageOrdersPerShift:
-        totalShifts > 0 ? Number((totalOrdersProcessed / totalShifts).toFixed(1)) : 0,
-      averageRevenuePerShift: totalShifts > 0 ? Number((totalRevenue / totalShifts).toFixed(0)) : 0,
+        totalShifts > 0 ? Number((totalOrdersCompleted / totalShifts).toFixed(1)) : 0,
+
+      averageRevenuePerShift:
+        totalShifts > 0 ? Number((totalSystemRevenue / totalShifts).toFixed(0)) : 0,
     };
   }
 }

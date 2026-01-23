@@ -26,7 +26,7 @@ class ReportService {
     // Build match query
     const match: any = {
       storeId: storeObjectId,
-      status: { $in: ['confirmed', 'completed'] },
+      status: { $in: ['pendding', 'completed', 'cancelled'] },
     };
 
     if (filter.startDate || filter.endDate) {
@@ -42,8 +42,26 @@ class ReportService {
         $group: {
           _id: '$confirmedBy',
           ordersProcessed: { $sum: 1 },
-          totalRevenue: { $sum: '$totalAmount' },
-          avgOrderValue: { $avg: '$totalAmount' },
+          ordersCompleted: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'completed'] }, 1, 0],
+            },
+          },
+          ordersCancelled: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0],
+            },
+          },
+          totalRevenue: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'completed'] }, '$totalAmount', 0],
+            },
+          },
+          avgOrderValue: {
+            $avg: {
+              $cond: [{ $eq: ['$status', 'completed'] }, '$totalAmount', null],
+            },
+          },
           firstOrder: { $min: '$confirmedAt' },
           lastOrder: { $max: '$confirmedAt' },
         },
@@ -62,9 +80,14 @@ class ReportService {
           staffId: '$_id',
           staffName: '$staff.name',
           staffType: '$staff.staffType',
+
           ordersProcessed: 1,
+          ordersCompleted: 1,
+          ordersCancelled: 1,
+
           totalRevenue: 1,
           avgOrderValue: { $round: ['$avgOrderValue', 0] },
+
           firstOrder: 1,
           lastOrder: 1,
         },
@@ -74,13 +97,13 @@ class ReportService {
 
     // Calculate additional metrics
     const enriched = staffPerformance.map((item) => {
-      const hoursWorked = item.firstOrder && item.lastOrder
-        ? Math.round((item.lastOrder - item.firstOrder) / (1000 * 60 * 60) * 10) / 10
-        : 0;
+      const hoursWorked =
+        item.firstOrder && item.lastOrder
+          ? Math.round(((item.lastOrder - item.firstOrder) / (1000 * 60 * 60)) * 10) / 10
+          : 0;
 
-      const ordersPerHour = hoursWorked > 0
-        ? Math.round((item.ordersProcessed / hoursWorked) * 10) / 10
-        : 0;
+      const ordersPerHour =
+        hoursWorked > 0 ? Math.round((item.ordersCompleted / hoursWorked) * 10) / 10 : 0;
 
       return {
         ...item,
@@ -144,15 +167,15 @@ class ReportService {
     }));
 
     // Find peak hour
-    const peakHour = ordersByHour.reduce(
-      (max, item) => (item.orders > max.orders ? item : max),
-      { _id: 0, orders: 0 }
-    );
+    const peakHour = ordersByHour.reduce((max, item) => (item.orders > max.orders ? item : max), {
+      _id: 0,
+      orders: 0,
+    });
 
     // Find peak day
     const peakDay = ordersByDayMapped.reduce(
       (max, item) => (item.orders > max.orders ? item : max),
-        ordersByDayMapped[0]
+      ordersByDayMapped[0],
     );
 
     return {
@@ -177,7 +200,10 @@ class ReportService {
   }
 
   // ========== 3. PRODUCT PROFITABILITY REPORT ==========
-  async getProductProfitabilityReport(storeId: string, filter: DateRangeFilter = {}): Promise<any[]> {
+  async getProductProfitabilityReport(
+    storeId: string,
+    filter: DateRangeFilter = {},
+  ): Promise<any[]> {
     const storeObjectId = new mongoose.Types.ObjectId(storeId);
 
     const match: any = {
@@ -223,9 +249,7 @@ class ReportService {
 
         const totalCost = costPerUnit * item.quantitySold;
         const profit = item.totalRevenue - totalCost;
-        const profitMargin = item.totalRevenue > 0
-          ? ((profit / item.totalRevenue) * 100)
-          : 0;
+        const profitMargin = item.totalRevenue > 0 ? (profit / item.totalRevenue) * 100 : 0;
 
         return {
           productId: item._id,
@@ -238,7 +262,7 @@ class ReportService {
           avgPrice: Math.round(item.avgPrice),
           costPerUnit: Math.round(costPerUnit),
         };
-      })
+      }),
     );
 
     // Sort by profit (highest first)
@@ -251,19 +275,21 @@ class ReportService {
   async getSalesSummary(
     storeId: string,
     period: 'day' | 'week' | 'month',
-    filter: DateRangeFilter = {}
+    filter: DateRangeFilter = {},
   ): Promise<any> {
     const storeObjectId = new mongoose.Types.ObjectId(storeId);
 
     // Default date range if not provided
     const endDate = filter.endDate || new Date();
-    const startDate = filter.startDate || (() => {
-      const date = new Date(endDate);
-      if (period === 'day') date.setDate(date.getDate() - 7); // Last 7 days
-      if (period === 'week') date.setDate(date.getDate() - 28); // Last 4 weeks
-      if (period === 'month') date.setMonth(date.getMonth() - 6); // Last 6 months
-      return date;
-    })();
+    const startDate =
+      filter.startDate ||
+      (() => {
+        const date = new Date(endDate);
+        if (period === 'day') date.setDate(date.getDate() - 7); // Last 7 days
+        if (period === 'week') date.setDate(date.getDate() - 28); // Last 4 weeks
+        if (period === 'month') date.setMonth(date.getMonth() - 6); // Last 6 months
+        return date;
+      })();
 
     const match: any = {
       storeId: storeObjectId,
@@ -361,14 +387,13 @@ class ReportService {
       }));
 
     // Calculate retention rate (customers who came back)
-    const retentionRate = totalCustomers > 0
-      ? ((returningCustomers / totalCustomers) * 100)
-      : 0;
+    const retentionRate = totalCustomers > 0 ? (returningCustomers / totalCustomers) * 100 : 0;
 
     // Average visits per customer
-    const avgVisitsPerCustomer = totalCustomers > 0
-      ? (customerFrequency.reduce((sum, c) => sum + c.visitCount, 0) / totalCustomers)
-      : 0;
+    const avgVisitsPerCustomer =
+      totalCustomers > 0
+        ? customerFrequency.reduce((sum, c) => sum + c.visitCount, 0) / totalCustomers
+        : 0;
 
     return {
       totalCustomers,

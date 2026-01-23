@@ -10,6 +10,11 @@ export interface IShift extends Document {
   // Performance metrics (calculated on check-out)
   hoursWorked?: number;
   ordersProcessed?: number;
+  ordersCompleted?: number;
+  ordersCancelled?: number;
+  cashCollected?: number;
+  transferCollected?: number;
+  systemRevenue?: number;
   totalRevenue?: number;
   averageOrderValue?: number;
 
@@ -65,8 +70,33 @@ const shiftSchema = new Schema<IShift>(
     ordersProcessed: {
       type: Number,
       default: 0,
-      min: 0,
     },
+
+    ordersCompleted: {
+      type: Number,
+      default: 0,
+    },
+
+    ordersCancelled: {
+      type: Number,
+      default: 0,
+    },
+
+    cashCollected: {
+      type: Number,
+      default: 0,
+    },
+
+    transferCollected: {
+      type: Number,
+      default: 0,
+    },
+
+    systemRevenue: {
+      type: Number,
+      default: 0,
+    },
+
     totalRevenue: {
       type: Number,
       default: 0,
