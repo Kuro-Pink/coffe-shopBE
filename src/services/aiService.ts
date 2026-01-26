@@ -59,3 +59,26 @@ Hãy viết 1 câu ngắn (tối đa 2 dòng) giải thích vì sao các món n�
 
   return completion.choices[0].message.content || '';
 };
+
+/**
+ * AI viết câu gợi ý combo (upsell)
+ */
+export const getAIComboSuggestText = async (
+  baseProduct: string,
+  comboProduct: string,
+): Promise<string> => {
+  const prompt = `
+Bạn là nhân viên quán cà phê.
+Khách đang gọi món: "${baseProduct}"
+Hãy viết 1 câu ngắn, thân thiện để gợi ý thêm món "${comboProduct}".
+Ví dụ: upsell nhẹ nhàng, không ép mua.
+`;
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.7,
+  });
+
+  return completion.choices[0].message.content || '';
+};

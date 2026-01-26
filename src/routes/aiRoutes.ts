@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { chatWithAI, recommendProducts } from '../controllers/aiController';
+import { chatWithAI, recommendProducts, recommendCombo } from '../controllers/aiController';
 
 const router = Router();
 
@@ -16,5 +16,6 @@ router.post('/chat', chatWithAI);
  * @query   storeId
  */
 router.get('/recommend', recommendProducts);
+router.get('/combo', recommendCombo);
 
 export default router;
