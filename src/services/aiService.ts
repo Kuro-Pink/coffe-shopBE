@@ -1,4 +1,6 @@
 import OpenAI from 'openai';
+import Order from '../models/Order';
+// import { openai } from '../config/openai';
 import { IProduct } from '../models/Product';
 
 const openai = new OpenAI({
@@ -81,4 +83,62 @@ Ví dụ: upsell nhẹ nhàng, không ép mua.
   });
 
   return completion.choices[0].message.content || '';
+};
+
+export const suggestOrderByPhone = async (phone: string) => {
+  // 1. Lấy đơn gần nhất của khách
+  const lastOrder = await Order.findOne({
+    customerPhone: phone,
+    status: { $ne: 'cancelled' },
+  })
+    .sort({ createdAt: -1 })
+    .limit(1);
+
+  if (!lastOrder) {
+    return {
+      hasHistory: false,
+      message: 'Chào bạn 👋, đây là lần đầu bạn gọi món tại quán!',
+    };
+  }
+
+  // 2. Chuẩn bị dữ liệu cho AI
+  const itemsText = lastOrder.items
+    .map((item) => `${item.name} (số lượng: ${item.quantity}, giá: ${item.price})`)
+    .join(', ');
+
+  const note = lastOrder.customerNote || 'Không có ghi chú đặc biệt';
+
+  // 3. Prompt cho AI
+  const prompt = `
+Bạn là trợ lý AI của quán cà phê.
+Dữ liệu khách hàng:
+- Tên khách: ${lastOrder.customerName}
+- Món đã gọi: ${itemsText}
+- Ghi chú của khách: ${note}
+
+Hãy tạo 1 câu gợi ý thân thiện, tự nhiên, xưng hô lịch sự (anh/chị),
+gợi ý gọi lại món giống lần trước.
+Không dài dòng, không quảng cáo.
+`;
+
+  // 4. Gọi OpenAI
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.7,
+  });
+
+  return {
+    hasHistory: true,
+    message: completion.choices[0].message.content,
+    applyData: {
+      items: lastOrder.items.map((item) => ({
+        productId: item.productId,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+      })),
+      note: lastOrder.customerNote,
+    },
+  };
 };

@@ -6,6 +6,7 @@ import {
   chatAIReply,
   getAIRecommendationExplain,
   getAIComboSuggestText,
+  suggestOrderByPhone,
 } from '../services/aiService';
 
 /**
@@ -209,5 +210,26 @@ export const recommendCombo = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('AI Combo Error:', error);
     res.status(500).json({ error: error.message });
+  }
+};
+
+export const suggestOrder = async (req: Request, res: Response) => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone) {
+      return res.status(400).json({
+        message: 'Vui lòng cung cấp số điện thoại',
+      });
+    }
+
+    const result = await suggestOrderByPhone(phone);
+
+    return res.json(result);
+  } catch (error) {
+    console.error('AI Suggestion Error:', error);
+    res.status(500).json({
+      message: 'Lỗi khi gợi ý món',
+    });
   }
 };
