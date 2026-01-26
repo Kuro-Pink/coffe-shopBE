@@ -1,43 +1,51 @@
-import OpenAI from 'openai';
 import Order from '../models/Order';
-// import { openai } from '../config/openai';
+import openai from '../config/openai';
 import { IProduct } from '../models/Product';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
 
 /**
  * Chatbot tư vấn món
  */
-export const chatAIReply = async (message: string, products: IProduct[]): Promise<string> => {
-  const menuText = products
-    .map((p) => `- ${p.name} (${p.price}đ): ${p.description || 'Không có mô tả'}`)
-    .join('\n');
-
+export const chatAIReply = async (message: string, products: any[]) => {
   const prompt = `
-Bạn là nhân viên phục vụ quán cà phê.
-Nhiệm vụ của bạn là tư vấn món cho khách.
+Bạn là trợ lý gọi món cho quán cafe.
 
-MENU:
-${menuText}
+Khách nói: "${message}"
 
-KHÁCH HỎI:
-"${message}"
+Danh sách menu:
+${products.map((p) => `- ${p.name} (${p.price}đ)`).join('\n')}
 
-YÊU CẦU:
-- Trả lời ngắn gọn, thân thiện
-- Có thể gợi ý 1–2 món phù hợp
-- Không bịa món ngoài menu
+Nếu khách muốn gợi ý món, hãy chọn tối đa 3 món phù hợp và trả về JSON đúng format:
+
+{
+  "reply": "câu trả lời tự nhiên cho khách",
+  "products": [
+    { "name": "...", "price": 0 }
+  ]
+}
+
+Nếu không cần gợi ý món thì trả về:
+
+{
+  "reply": "câu trả lời",
+  "products": []
+}
+
+CHỈ TRẢ VỀ JSON. KHÔNG VIẾT THÊM TEXT NGOÀI JSON.
 `;
 
-  const completion = await openai.chat.completions.create({
+  const aiRes = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [{ role: 'user', content: prompt }],
-    temperature: 0.6,
+    temperature: 0.7,
   });
 
-  return completion.choices[0].message.content || '';
+  const text = aiRes.choices[0].message.content || '{}';
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { reply: text, products: [] };
+  }
 };
 
 /**
@@ -140,5 +148,72 @@ Không dài dòng, không quảng cáo.
       })),
       note: lastOrder.customerNote,
     },
+  };
+};
+
+export const analyzeCustomerByPhone = async (phone: string) => {
+  const orders = await Order.find({
+    customerPhone: phone,
+    status: { $ne: 'cancelled' },
+  }).sort({ createdAt: -1 });
+
+  if (orders.length === 0) {
+    return {
+      type: 'new',
+      totalOrders: 0,
+      totalSpent: 0,
+      description: 'Khách hàng mới, chưa có lịch sử gọi món.',
+    };
+  }
+
+  // Tổng số đơn & tổng tiền
+  const totalOrders = orders.length;
+  const totalSpent = orders.reduce((sum, order) => sum + order.totalAmount, 0);
+
+  // Món hay gọi
+  const itemMap: Record<string, number> = {};
+  orders.forEach((order) => {
+    order.items.forEach((item) => {
+      itemMap[item.name] = (itemMap[item.name] || 0) + item.quantity;
+    });
+  });
+
+  const favoriteItems = Object.entries(itemMap)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map((i) => i[0])
+    .join(', ');
+
+  // Gán loại khách (logic)
+  let customerType = 'regular';
+  if (totalOrders === 1) customerType = 'new';
+  else if (totalOrders >= 5) customerType = 'loyal';
+  if (totalOrders >= 8 || totalSpent >= 500000) customerType = 'vip';
+
+  // Prompt AI để diễn giải
+  const prompt = `
+Bạn là AI phân tích hành vi khách hàng cho quán cà phê.
+
+Thông tin:
+- Số đơn: ${totalOrders}
+- Tổng chi tiêu: ${totalSpent} VNĐ
+- Món hay gọi: ${favoriteItems}
+
+Hãy viết 1 đoạn mô tả ngắn (1–2 câu) về khách hàng này,
+xưng hô lịch sự, dễ hiểu cho nhân viên quán.
+`;
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.6,
+  });
+
+  return {
+    type: customerType,
+    totalOrders,
+    totalSpent,
+    favoriteItems,
+    description: completion.choices[0].message.content,
   };
 };

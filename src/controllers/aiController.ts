@@ -7,6 +7,7 @@ import {
   getAIRecommendationExplain,
   getAIComboSuggestText,
   suggestOrderByPhone,
+  analyzeCustomerByPhone,
 } from '../services/aiService';
 
 /**
@@ -24,17 +25,36 @@ export const chatWithAI = async (req: Request, res: Response) => {
     const products = await Product.find({
       storeId,
       isAvailable: true,
-    }).select('name price description');
+    }).select('_id name price image');
 
     if (products.length === 0) {
       return res.json({
         reply: 'Hiện tại quán chưa có món nào sẵn sàng phục vụ 😅',
+        products: [],
       });
     }
 
-    const reply = await chatAIReply(message, products);
+    const aiData = await chatAIReply(message, products);
 
-    res.json({ reply });
+    // 🔥 Map tên AI chọn → sản phẩm thật trong DB
+    const mappedProducts = (aiData.products || [])
+      .map((aiP: any) => {
+        const real = products.find((p) => p.name === aiP.name);
+        if (!real) return null;
+
+        return {
+          productId: real._id,
+          name: real.name,
+          price: real.price,
+          image: real.image,
+        };
+      })
+      .filter(Boolean);
+
+    res.json({
+      reply: aiData.reply,
+      products: mappedProducts,
+    });
   } catch (error: any) {
     console.error('AI Chat Error:', error);
     res.status(500).json({ error: error.message });
@@ -186,6 +206,7 @@ export const recommendCombo = async (req: Request, res: Response) => {
           productId: '$product._id',
           name: '$product.name',
           price: '$product.price',
+          image: '$product.image',
           count: 1,
         },
       },
@@ -230,6 +251,27 @@ export const suggestOrder = async (req: Request, res: Response) => {
     console.error('AI Suggestion Error:', error);
     res.status(500).json({
       message: 'Lỗi khi gợi ý món',
+    });
+  }
+};
+
+export const analyzeCustomer = async (req: Request, res: Response) => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone) {
+      return res.status(400).json({
+        message: 'Thiếu số điện thoại khách hàng',
+      });
+    }
+
+    const profile = await analyzeCustomerByPhone(phone);
+
+    return res.json(profile);
+  } catch (error) {
+    console.error('AI Customer Analyze Error:', error);
+    res.status(500).json({
+      message: 'Lỗi phân tích khách hàng',
     });
   }
 };
