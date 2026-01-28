@@ -10,13 +10,71 @@ import {
   analyzeCustomerByPhone,
 } from '../services/aiService';
 
+const normalize = (str: string) =>
+  str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+type ChatAction =
+  | 'SHOW_RECOMMEND'
+  | 'SHOW_DRINK'
+  | 'SHOW_FOOD'
+  | 'SHOW_SNACK'
+  | 'SHOW_CAKE'
+  | 'SHOW_COFFEE_PAIRING'
+  | 'BEST_SELLER_DRINK'
+  | 'MORNING_DRINK'
+  | 'COLD_WEATHER'
+  | 'LESS_ICE'
+  | 'HOT_DRINK';
+
+const detectActionFromMessage = (message: string): ChatAction => {
+  const msg = normalize(message);
+
+  // ⭐ BÁN CHẠY (chỉ đồ uống)
+  if (msg.includes('ban chay') || msg.includes('do uong')) return 'BEST_SELLER_DRINK';
+
+  // 🌅 BUỔI SÁNG
+  if (msg.includes('buoi sang') || msg.includes('sang som')) return 'MORNING_DRINK';
+
+  // 🧊 ÍT đá
+  if (
+    msg.includes('troi lanh') ||
+    msg.includes('lanh') ||
+    msg.includes('it da') ||
+    msg.includes('khong da')
+  )
+    return 'LESS_ICE';
+
+  // 🔥 MÓN NÓNG
+  if (msg.includes('nong')) return 'HOT_DRINK';
+
+  if (msg.includes('goi y') || msg.includes('de xuat')) return 'SMART_RECOMMEND';
+
+  if (msg.includes('ca phe') || msg.includes('coffee')) return 'SHOW_COFFEE';
+  if (msg.includes('tra sua')) return 'SHOW_MILK_TEA';
+  if (msg.includes('tra')) return 'SHOW_TEA';
+  if (msg.includes('nuoc ep')) return 'SHOW_JUICE';
+  if (msg.includes('sinh to')) return 'SHOW_SMOOTHIE';
+  if (msg.includes('sua chua')) return 'SHOW_YOGURT';
+  if (msg.includes('matcha')) return 'SHOW_MATCHA';
+  if (msg.includes('da xay')) return 'SHOW_ICE_BLENDED';
+
+  if (msg.includes('an vat')) return 'SHOW_SNACK';
+  if (msg.includes('banh') || msg.includes('cake')) return 'SHOW_CAKE';
+  if (msg.includes('an kem ca phe')) return 'SHOW_COFFEE_PAIRING';
+
+  return 'SMART_RECOMMEND';
+};
+
 /**
  * POST /api/ai/chat
  * Chatbot AI tư vấn món
  */
 export const chatWithAI = async (req: Request, res: Response) => {
   try {
-    const { storeId, message } = req.body;
+    const { storeId, message, action: clientAction } = req.body;
 
     if (!storeId || !message) {
       return res.status(400).json({ message: 'storeId và message là bắt buộc' });
@@ -25,7 +83,7 @@ export const chatWithAI = async (req: Request, res: Response) => {
     const products = await Product.find({
       storeId,
       isAvailable: true,
-    }).select('_id name price image');
+    }).select('_id name price image category');
 
     if (products.length === 0) {
       return res.json({
@@ -34,9 +92,12 @@ export const chatWithAI = async (req: Request, res: Response) => {
       });
     }
 
-    const aiData = await chatAIReply(message, products);
+    // 🔥 Detect action từ message
+    const action = clientAction || detectActionFromMessage(message);
 
-    // 🔥 Map tên AI chọn → sản phẩm thật trong DB
+    const aiData = await chatAIReply(action, products);
+
+    // Map lại sản phẩm thật
     const mappedProducts = (aiData.products || [])
       .map((aiP: any) => {
         const real = products.find((p) => p.name === aiP.name);
@@ -51,9 +112,18 @@ export const chatWithAI = async (req: Request, res: Response) => {
       })
       .filter(Boolean);
 
+    // 🚨 Nếu user chọn nhóm mà quán KHÔNG CÓ MÓN
+    if (mappedProducts.length === 0 && !aiData.action) {
+      return res.json({
+        reply: 'Món này hiện quán đang hết hoặc chưa có trong menu 😢 Bạn thử xem món khác nha!',
+        products: [],
+      });
+    }
+
     res.json({
       reply: aiData.reply,
       products: mappedProducts,
+      action: aiData.action || null, // 🆕 để FE biết bước tiếp theo
     });
   } catch (error: any) {
     console.error('AI Chat Error:', error);
