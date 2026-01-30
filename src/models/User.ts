@@ -6,6 +6,7 @@ export interface IUser extends Document {
   password: string;
   name: string;
   phone: string;
+  avatar: string;
   role: 'admin' | 'host' | 'staff';
   staffType?: 'cashier' | 'bar' | 'kitchen';
   storeId?: mongoose.Types.ObjectId;
@@ -40,12 +41,17 @@ const userSchema = new Schema<IUser>(
       required: [true, 'Phone is required'],
       trim: true,
     },
+    avatar: {
+      type: String,
+      default: '',
+    },
+
     role: {
       type: String,
-      enum: ['admin', 'host', 'staff'], 
-      default: 'staff', 
+      enum: ['admin', 'host', 'staff'],
+      default: 'staff',
     },
-     staffType: {
+    staffType: {
       type: String,
       enum: ['cashier', 'bar', 'kitchen'],
       // Only required if role is 'staff'
@@ -61,7 +67,7 @@ const userSchema = new Schema<IUser>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Hash password before saving
@@ -81,9 +87,7 @@ userSchema.pre('save', function (next) {
 });
 
 // Compare password method
-userSchema.methods.comparePassword = async function (
-  candidatePassword: string
-): Promise<boolean> {
+userSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
   return bcrypt.compare(candidatePassword, this.password);
 };
 

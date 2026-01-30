@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User, { IUser } from '../models/User';
 import { ApiError } from '../utils/ApiError';
+import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinaryUpload';
 
 interface RegisterData {
   email: string;
@@ -14,6 +15,12 @@ interface RegisterData {
 interface LoginData {
   email: string;
   password: string;
+}
+interface UpdateMeData {
+  name?: string;
+  phone?: string;
+  password?: string;
+  avatar?: string;
 }
 
 class AuthService {
@@ -62,6 +69,57 @@ class AuthService {
       throw new ApiError(404, 'User not found');
     }
     return user;
+  }
+
+  async updateMe(
+    userId: string,
+    data: {
+      name?: string;
+      phone?: string;
+      avatar?: Express.Multer.File;
+    },
+  ) {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new ApiError(404, 'User not found');
+    }
+
+    // ✅ Upload avatar nếu có
+    if (data.avatar) {
+      // Xoá avatar cũ
+      if (user.avatar) {
+        const publicId = user.avatar.split('/').slice(-2).join('/').split('.')[0];
+
+        await deleteFromCloudinary(publicId);
+      }
+
+      const uploadResult = await uploadToCloudinary(data.avatar, 'user-avatars');
+
+      user.avatar = uploadResult.url;
+    }
+
+    // Update text fields
+    if (data.name) user.name = data.name;
+    if (data.phone) user.phone = data.phone;
+
+    await user.save();
+
+    return user;
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await User.findById(userId).select('+password');
+
+    if (!user || !(await user.comparePassword(currentPassword))) {
+      throw new ApiError(400, 'Mật khẩu hiện tại không đúng');
+    }
+
+    if (newPassword.length < 6) {
+      throw new ApiError(400, 'Mật khẩu mới tối thiểu 6 ký tự');
+    }
+
+    user.password = newPassword;
+    await user.save();
   }
 }
 
