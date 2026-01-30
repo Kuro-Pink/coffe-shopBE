@@ -7,6 +7,7 @@ import staffController from '../controllers/staffController';
 import inventoryController from '../controllers/inventoryController';
 import reportController from '../controllers/reportController';
 import shiftController from '../controllers/shiftController';
+import adminController from '../controllers/adminController';
 import { protect, authorize } from '../middlewares/auth';
 import { upload } from '../middlewares/upload';
 
@@ -39,12 +40,17 @@ router.get('/shifts/:shiftId/report', shiftController.getShiftReport);
 
 router.use(authorize('host')); // Only host can access
 
+// ========== STORE CRUD ==========
+router.get('/stores/:id', adminController.getStoreById);
+router.put('/stores/:id', upload.single('logo'), adminController.updateStore);
+router.patch('/stores/:id/toggle-status', adminController.toggleStoreStatus);
 // ========== STORE REQUESTS ========== (NEW)
 router.post(
   '/store-requests',
   upload.single('storeLogo'),
   storeRequestController.createStoreRequest,
 );
+
 router.get('/store-requests/my-requests', storeRequestController.getMyStoreRequests);
 
 // ========== CATEGORIES ==========
