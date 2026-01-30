@@ -15,6 +15,9 @@ const router = Router();
 
 router.use(protect);
 router.use(authorize('host', 'staff'));
+// ========== STORE INFO ==========
+router.get('/stores/:id', adminController.getStoreById);
+
 // ========== TABLES ==========
 router.get('/stores/:storeId/tables/stats', hostController.getTableStats);
 router.get('/stores/:storeId/tables', hostController.getTables);
@@ -41,7 +44,6 @@ router.get('/shifts/:shiftId/report', shiftController.getShiftReport);
 router.use(authorize('host')); // Only host can access
 
 // ========== STORE CRUD ==========
-router.get('/stores/:id', adminController.getStoreById);
 router.put('/stores/:id', upload.single('logo'), adminController.updateStore);
 router.patch('/stores/:id/toggle-status', adminController.toggleStoreStatus);
 // ========== STORE REQUESTS ========== (NEW)
