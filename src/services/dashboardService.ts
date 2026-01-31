@@ -130,6 +130,12 @@ class DashboardService {
     };
   }
   async getRevenueByStore() {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+
     return Order.aggregate([
       { $match: { status: 'completed' } },
       {
@@ -137,6 +143,20 @@ class DashboardService {
           _id: '$storeId',
           totalRevenue: { $sum: '$totalAmount' },
           totalOrders: { $sum: 1 },
+          todayRevenue: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $gte: ['$createdAt', startOfToday] },
+                    { $lte: ['$createdAt', endOfToday] },
+                  ],
+                },
+                '$totalAmount',
+                0,
+              ],
+            },
+          },
         },
       },
       {
@@ -155,6 +175,7 @@ class DashboardService {
           storeName: '$store.name',
           totalRevenue: 1,
           totalOrders: 1,
+          todayRevenue: 1,
         },
       },
       { $sort: { totalRevenue: -1 } },
@@ -212,13 +233,51 @@ class DashboardService {
       { $sort: { date: 1 } },
     ]);
 
-    return {
-      store,
-      summary: {
-        totalRevenue: summary?.totalRevenue || 0,
-        totalOrders: summary?.totalOrders || 0,
+    const topProducts = await Order.aggregate([
+      {
+        $match: {
+          storeId: store._id,
+          status: 'completed',
+        },
       },
-      chart,
+      { $unwind: '$items' },
+      {
+        $group: {
+          _id: '$items.productId',
+          name: { $first: '$items.name' },
+          totalQuantity: { $sum: '$items.quantity' },
+          totalRevenue: {
+            $sum: {
+              $multiply: ['$items.quantity', '$items.price'],
+            },
+          },
+        },
+      },
+      { $sort: { totalQuantity: -1 } },
+      { $limit: 5 },
+      {
+        $project: {
+          _id: 0,
+          productId: '$_id',
+          name: 1,
+          totalQuantity: 1,
+          totalRevenue: 1,
+        },
+      },
+    ]);
+
+    const totalRevenue = summary?.totalRevenue || 0;
+    const totalOrders = summary?.totalOrders || 0;
+    const avgRevenuePerDay = days > 0 ? Math.round(totalRevenue / days) : 0;
+
+    return {
+      storeId: store._id,
+      storeName: store.name,
+      totalRevenue,
+      totalOrders,
+      avgRevenuePerDay,
+      revenueByDay: chart, // FE đang dùng
+      topProducts, // 👈 THÊM CÁI NÀY
     };
   }
 }

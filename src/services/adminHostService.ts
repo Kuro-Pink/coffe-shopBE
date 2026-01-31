@@ -77,6 +77,7 @@ class AdminHostService {
     return {
       _id: host._id,
       email: host.email,
+      phone: host.phone,
       name: host.name,
       isActive: host.isActive,
       createdAt: host.createdAt,
