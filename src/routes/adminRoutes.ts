@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import adminController from '../controllers/adminController';
 import storeRequestController from '../controllers/storeRequestController';
+import adminHostController from '../controllers/adminHostController';
 import { protect, authorize } from '../middlewares/auth';
 import { upload } from '../middlewares/upload';
 
@@ -10,10 +11,17 @@ const router = Router();
 router.use(protect);
 router.use(authorize('admin'));
 
-// Statistics
+// ========== Dashboard ==========
 router.get('/dashboard-stats', adminController.getDashboardStats);
 router.get('/dashboard/revenue', adminController.getRevenueChart);
 router.get('/dashboard/activities', adminController.getRecentActivities);
+
+// ========== HOST MANAGEMENT ==========
+router.get('/hosts', adminHostController.getHosts);
+router.get('/hosts/:id', adminHostController.getHostById);
+router.patch('/hosts/:id/lock', adminHostController.lockHost);
+router.patch('/hosts/:id/unlock', adminHostController.unlockHost);
+
 // Statistics
 router.get('/stats', adminController.getStatistics);
 
