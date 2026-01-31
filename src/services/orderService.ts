@@ -90,6 +90,7 @@ class OrderService {
         order.completedBy = staffId as any;
         order.paidBy = staffId as any;
         order.completedAt = new Date();
+        order.isPaid = true;
       }
     }
 
@@ -163,9 +164,21 @@ class OrderService {
 
     // Total revenue (only completed orders)
     const revenueResult = await Order.aggregate([
-      { $match: { ...query, status: 'completed' } },
-      { $group: { _id: null, total: { $sum: '$totalAmount' } } },
+      {
+        $match: {
+          ...query,
+          status: 'completed',
+          isPaid: true,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$totalAmount' },
+        },
+      },
     ]);
+
     const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
     console.log('💰 Total revenue:', totalRevenue);
 
@@ -198,9 +211,10 @@ class OrderService {
     const revenueByDay = await Order.aggregate([
       {
         $match: {
-          storeId: storeObjectId, // ✅ Use ObjectId here too
+          storeId: storeObjectId,
           status: 'completed',
-          createdAt: {
+          isPaid: true,
+          completedAt: {
             $gte: dateRangeStart,
             ...(filter.endDate && { $lte: filter.endDate }),
           },
@@ -209,7 +223,10 @@ class OrderService {
       {
         $group: {
           _id: {
-            $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
+            $dateToString: {
+              format: '%Y-%m-%d',
+              date: '$completedAt',
+            },
           },
           revenue: { $sum: '$totalAmount' },
           orders: { $sum: 1 },
