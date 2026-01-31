@@ -2,8 +2,29 @@ import { Request, Response } from 'express';
 import { catchAsync } from '../utils/catchAsync';
 import { ApiResponse } from '../utils/ApiResponse';
 import storeService from '../services/storeService';
+import dashboardService from '../services/dashboardService';
 
 class AdminController {
+  // Get all stores data in dashboard
+  getDashboardStats = catchAsync(async (req: Request, res: Response) => {
+    const stats = await dashboardService.getDashboardStats();
+
+    res.status(200).json(ApiResponse.success(stats, 'Dashboard statistics retrieved successfully'));
+  });
+
+  getRevenueChart = catchAsync(async (req: Request, res: Response) => {
+    const days = Number(req.query.days || 7);
+
+    const data = await dashboardService.getRevenueByRange(days);
+
+    res.status(200).json(ApiResponse.success(data));
+  });
+
+  getRecentActivities = catchAsync(async (req: Request, res: Response) => {
+    const data = await dashboardService.getRecentActivities();
+    res.status(200).json(ApiResponse.success(data));
+  });
+
   // Get all stores
   getAllStores = catchAsync(async (req: Request, res: Response) => {
     const { isActive } = req.query;
