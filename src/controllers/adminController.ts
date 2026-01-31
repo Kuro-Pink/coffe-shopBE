@@ -25,6 +25,26 @@ class AdminController {
     res.status(200).json(ApiResponse.success(data));
   });
 
+  getRevenueOverview = catchAsync(async (req: Request, res: Response) => {
+    const data = await dashboardService.getRevenueOverview();
+    res.status(200).json(ApiResponse.success(data));
+  });
+
+  getRevenueByStore = catchAsync(async (req: Request, res: Response) => {
+    const data = await dashboardService.getRevenueByStore();
+
+    res.status(200).json(ApiResponse.success(data, 'Revenue by store retrieved successfully'));
+  });
+
+  getRevenueByStoreDetail = catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const days = Number(req.query.days || 30);
+
+    const data = await dashboardService.getRevenueByStoreDetail(id, days);
+
+    res.status(200).json(ApiResponse.success(data, 'Revenue detail retrieved successfully'));
+  });
+
   // Get all stores
   getAllStores = catchAsync(async (req: Request, res: Response) => {
     const { isActive } = req.query;

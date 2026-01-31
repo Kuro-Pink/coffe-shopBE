@@ -21,6 +21,9 @@ router.get('/hosts', adminHostController.getHosts);
 router.get('/hosts/:id', adminHostController.getHostById);
 router.patch('/hosts/:id/lock', adminHostController.lockHost);
 router.patch('/hosts/:id/unlock', adminHostController.unlockHost);
+router.get('/revenue/overview', adminController.getRevenueOverview);
+router.get('/revenue/stores', adminController.getRevenueByStore);
+router.get('/revenue/stores/:id', adminController.getRevenueByStoreDetail);
 
 // Statistics
 router.get('/stats', adminController.getStatistics);

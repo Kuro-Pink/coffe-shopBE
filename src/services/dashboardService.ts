@@ -2,6 +2,7 @@ import Store from '../models/Store';
 import User from '../models/User';
 import Order from '../models/Order'; // nếu có
 import StoreRequest from '../models/StoreRequest'; // nếu có
+import { ApiError } from '../utils/ApiError';
 
 class DashboardService {
   async getDashboardStats() {
@@ -104,6 +105,121 @@ class DashboardService {
     ]
       .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
       .slice(0, limit);
+  }
+
+  async getRevenueOverview() {
+    const [revenueAgg] = await Order.aggregate([
+      { $match: { status: 'completed' } },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: '$totalAmount' },
+          totalOrders: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const totalStores = await Store.countDocuments({});
+
+    return {
+      totalRevenue: revenueAgg?.totalRevenue || 0,
+      totalOrders: revenueAgg?.totalOrders || 0,
+      totalStores,
+      avgRevenuePerStore:
+        totalStores > 0 ? Math.round((revenueAgg?.totalRevenue || 0) / totalStores) : 0,
+    };
+  }
+  async getRevenueByStore() {
+    return Order.aggregate([
+      { $match: { status: 'completed' } },
+      {
+        $group: {
+          _id: '$storeId',
+          totalRevenue: { $sum: '$totalAmount' },
+          totalOrders: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: 'stores',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'store',
+        },
+      },
+      { $unwind: '$store' },
+      {
+        $project: {
+          _id: 0,
+          storeId: '$store._id',
+          storeName: '$store.name',
+          totalRevenue: 1,
+          totalOrders: 1,
+        },
+      },
+      { $sort: { totalRevenue: -1 } },
+    ]);
+  }
+
+  async getRevenueByStoreDetail(storeId: string, days: number) {
+    const start = new Date();
+    start.setDate(start.getDate() - days);
+
+    const store = await Store.findById(storeId);
+    if (!store) throw new ApiError(404, 'Store not found');
+
+    const [summary] = await Order.aggregate([
+      {
+        $match: {
+          storeId: store._id,
+          status: 'completed',
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: '$totalAmount' },
+          totalOrders: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const chart = await Order.aggregate([
+      {
+        $match: {
+          storeId: store._id,
+          status: 'completed',
+          createdAt: { $gte: start },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
+          },
+          revenue: { $sum: '$totalAmount' },
+          orders: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          date: '$_id',
+          revenue: 1,
+          orders: 1,
+        },
+      },
+      { $sort: { date: 1 } },
+    ]);
+
+    return {
+      store,
+      summary: {
+        totalRevenue: summary?.totalRevenue || 0,
+        totalOrders: summary?.totalOrders || 0,
+      },
+      chart,
+    };
   }
 }
 
