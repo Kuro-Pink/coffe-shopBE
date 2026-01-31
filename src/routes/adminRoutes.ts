@@ -15,6 +15,7 @@ router.use(authorize('admin'));
 router.get('/dashboard-stats', adminController.getDashboardStats);
 router.get('/dashboard/revenue', adminController.getRevenueChart);
 router.get('/dashboard/activities', adminController.getRecentActivities);
+router.get('/activity-logs', adminController.getLogs);
 
 // ========== HOST MANAGEMENT ==========
 router.get('/hosts', adminHostController.getHosts);

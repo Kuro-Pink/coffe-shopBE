@@ -4,6 +4,7 @@ import Store from '../models/Store';
 import { ApiError } from '../utils/ApiError';
 import inventoryService from './inventoryService';
 import { emitOrderStatusUpdate } from '../utils/socket';
+import activityLogService from '../services/activityLogService';
 
 interface GetOrdersFilter {
   status?: string;
@@ -96,6 +97,15 @@ class OrderService {
 
     order.status = status;
     await order.save();
+
+    // ✅ ACTIVITY LOG: ORDER COMPLETED
+    if (status === 'completed') {
+      await activityLogService.createLog(
+        'order',
+        `Đơn hàng ${order.orderNumber} hoàn tất – ${order.totalAmount.toLocaleString()}₫`,
+        staffId,
+      );
+    }
 
     emitOrderStatusUpdate(order.storeId.toString(), order);
 

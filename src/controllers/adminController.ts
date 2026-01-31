@@ -3,6 +3,7 @@ import { catchAsync } from '../utils/catchAsync';
 import { ApiResponse } from '../utils/ApiResponse';
 import storeService from '../services/storeService';
 import dashboardService from '../services/dashboardService';
+import activityLogService from '../services/activityLogService';
 
 class AdminController {
   // Get all stores data in dashboard
@@ -41,8 +42,18 @@ class AdminController {
     const days = Number(req.query.days || 30);
 
     const data = await dashboardService.getRevenueByStoreDetail(id, days);
+    await activityLogService.createLog(
+      'revenue',
+      `Admin xem doanh thu store ${data.storeName}`,
+      req.user._id,
+    );
 
     res.status(200).json(ApiResponse.success(data, 'Revenue detail retrieved successfully'));
+  });
+
+  getLogs = catchAsync(async (req: Request, res: Response) => {
+    const data = await activityLogService.getRecent(10);
+    res.status(200).json(ApiResponse.success(data));
   });
 
   // Get all stores
