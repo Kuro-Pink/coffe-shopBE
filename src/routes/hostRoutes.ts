@@ -8,6 +8,7 @@ import inventoryController from '../controllers/inventoryController';
 import reportController from '../controllers/reportController';
 import shiftController from '../controllers/shiftController';
 import adminController from '../controllers/adminController';
+import voucherController from '../controllers/voucherController';
 import { protect, authorize } from '../middlewares/auth';
 import { upload } from '../middlewares/upload';
 
@@ -69,6 +70,15 @@ router.get('/products/:id', hostController.getProductById);
 router.put('/products/:id', upload.single('image'), hostController.updateProduct);
 router.delete('/products/:id', hostController.deleteProduct);
 router.patch('/products/:id/toggle-availability', hostController.toggleProductAvailability);
+
+// ========== VOUCHERS ==========
+router.get('/stores/:storeId/vouchers', voucherController.list);
+router.get('/vouchers/:id', voucherController.getDetail);
+router.post('/stores/:storeId/vouchers', voucherController.create);
+router.put('/vouchers/:id', voucherController.update);
+router.delete('/vouchers/:id', voucherController.delete);
+router.patch('/vouchers/:id/toggle', voucherController.toggle);
+router.put('/vouchers/products/:id', voucherController.setProducts);
 
 // ========== TABLES ==========
 router.post('/stores/:storeId/tables', hostController.createTable);
