@@ -338,6 +338,7 @@ class AnalyticsService {
     orders.forEach((order) => {
       order.items.forEach((item) => {
         const productInfo = productCategoryMap.get(item.productId.toString());
+
         if (productInfo) {
           const key = productInfo.categoryId;
           const existing = categoryStats.get(key) || {
@@ -347,9 +348,10 @@ class AnalyticsService {
             totalRevenue: 0,
             ordersCount: 0,
           };
+          const price = item.finalPrice ?? item.originalPrice ?? 0;
 
           existing.totalQuantity += item.quantity;
-          existing.totalRevenue += item.price * item.quantity;
+          existing.totalRevenue += price * item.quantity;
           existing.ordersCount += 1;
 
           categoryStats.set(key, existing);
