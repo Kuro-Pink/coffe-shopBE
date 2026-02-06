@@ -28,6 +28,12 @@ export interface IBill extends Document {
   qrPaymentUrl?: string;
   createdAt: Date;
   paidAt?: Date;
+  voucherId?: mongoose.Types.ObjectId;
+  voucherCode?: string;
+  discountDetail?: {
+    type: 'percent' | 'fixed';
+    value: number;
+  };
 }
 
 const BillSchema = new Schema<IBill>(
@@ -126,10 +132,22 @@ const BillSchema = new Schema<IBill>(
     paidAt: {
       type: Date,
     },
+    voucherId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Voucher',
+    },
+    voucherCode: String,
+    discountDetail: {
+      type: {
+        type: String,
+        enum: ['percent', 'fixed'],
+      },
+      value: Number,
+    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Indexes

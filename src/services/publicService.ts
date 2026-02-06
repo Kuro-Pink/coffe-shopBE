@@ -3,6 +3,7 @@ import Table from '../models/Table';
 import Category from '../models/Category';
 import Product from '../models/Product';
 import Order, { IOrder } from '../models/Order';
+import Voucher from '../models/Voucher';
 import { ApiError } from '../utils/ApiError';
 import { generateOrderNumber } from '../utils/orderNumberGenerator';
 import { emitNewOrder } from '../utils/socket';
@@ -23,7 +24,10 @@ interface MenuData {
       _id: string;
       name: string;
       description: string;
-      price: number;
+      originalPrice: number;
+      finalPrice: number;
+      discountAmount: number;
+      voucherName?: string | null;
       image?: string;
       isAvailable: boolean;
     }>;
@@ -36,6 +40,7 @@ interface CreateOrderData {
   customerName: string;
   customerPhone: string;
   customerNote?: string;
+  voucherDiscount?: number;
   items: Array<{
     productId: string;
     quantity: number;
@@ -43,9 +48,55 @@ interface CreateOrderData {
 }
 
 class PublicService {
+  private async getProductDiscount(productId: string, price: number, storeId: string) {
+    const now = new Date();
+
+    const voucher = await Voucher.findOne({
+      storeId,
+      isActive: true,
+      startDate: { $lte: now },
+      endDate: { $gte: now },
+      productIds: { $in: [productId] },
+    });
+
+    if (!voucher) {
+      return {
+        originalPrice: price,
+        finalPrice: price,
+        discountAmount: 0,
+        voucherId: null,
+        voucherName: null,
+      };
+    }
+
+    let discount = 0;
+
+    if (voucher.type === 'percent') {
+      discount = (price * voucher.value) / 100;
+      if (voucher.maxDiscount) {
+        discount = Math.min(discount, voucher.maxDiscount);
+      }
+    } else if (voucher.type === 'fixed') {
+      discount = voucher.value;
+
+      // ❗ tránh giảm quá giá
+      if (discount > price) {
+        discount = price;
+      }
+    }
+
+    const finalPrice = Math.max(price - discount, 0);
+
+    return {
+      originalPrice: price,
+      finalPrice,
+      discountAmount: discount,
+      voucherName: voucher.name,
+    };
+  }
+
   // Get menu by store (for customer)
   async getMenu(storeId: string): Promise<MenuData> {
-    // Get store
     const store = await Store.findById(storeId);
     if (!store) {
       throw new ApiError(404, 'Store not found');
@@ -55,7 +106,6 @@ class PublicService {
       throw new ApiError(400, 'Store is currently inactive');
     }
 
-    // Get categories with products
     const categories = await Category.find({ storeId }).sort({ order: 1 });
 
     const menuData: MenuData = {
@@ -69,25 +119,35 @@ class PublicService {
       categories: [],
     };
 
-    // Get products for each category
     for (const category of categories) {
       const products = await Product.find({
         categoryId: category._id,
         storeId,
       }).select('name description price image isAvailable');
 
+      const productList: MenuData['categories'][0]['products'] = [];
+
+      for (const p of products) {
+        const discountInfo = await this.getProductDiscount(p._id.toString(), p.price, storeId);
+
+        productList.push({
+          _id: p._id.toString(),
+          name: p.name,
+          description: p.description,
+          originalPrice: discountInfo.originalPrice,
+          finalPrice: discountInfo.finalPrice,
+          discountAmount: discountInfo.discountAmount,
+          voucherName: discountInfo.voucherName,
+          image: p.image,
+          isAvailable: p.isAvailable,
+        });
+      }
+
       menuData.categories.push({
         _id: category._id.toString(),
         name: category.name,
         order: category.order,
-        products: products.map((p) => ({
-          _id: p._id.toString(),
-          name: p.name,
-          description: p.description,
-          price: p.price,
-          image: p.image,
-          isAvailable: p.isAvailable,
-        })),
+        products: productList,
       });
     }
 
@@ -140,8 +200,9 @@ class PublicService {
     }
 
     // Get products and calculate total
-    const orderItems = [];
-    let totalAmount = 0;
+    const orderItems: any[] = [];
+    let subtotal = 0;
+    let productSaving = 0;
 
     for (const item of data.items) {
       const product = await Product.findById(item.productId);
@@ -155,16 +216,28 @@ class PublicService {
         throw new ApiError(400, `Product "${product.name}" is currently unavailable`);
       }
 
-      const itemTotal = product.price * item.quantity;
-      totalAmount += itemTotal;
+      const discountInfo = await this.getProductDiscount(
+        product._id.toString(),
+        product.price,
+        data.storeId,
+      );
+
+      const originalTotalItem = discountInfo.originalPrice * item.quantity;
+
+      subtotal += originalTotalItem;
+      productSaving += discountInfo.discountAmount * item.quantity;
 
       orderItems.push({
         productId: product._id,
         name: product.name,
-        price: product.price,
+        originalPrice: discountInfo.originalPrice,
+        finalPrice: discountInfo.finalPrice,
+        discountAmount: discountInfo.discountAmount,
         quantity: item.quantity,
       });
     }
+    const voucherDiscount = data.voucherDiscount || 0;
+    const totalAmount = subtotal - productSaving - voucherDiscount;
 
     // Generate order number
     let orderNumber = generateOrderNumber();
@@ -179,14 +252,17 @@ class PublicService {
       orderNumber,
       storeId: data.storeId,
       tableId: data.tableId,
-      tableName: `${table.tableNumber} - ${table.area}`, 
-      customerName: data.customerName, 
+      tableName: `${table.tableNumber} - ${table.area}`,
+      customerName: data.customerName,
       customerPhone: data.customerPhone,
       customerNote: data.customerNote || '',
       items: orderItems,
+      subtotal,
+      productSaving,
+      voucherDiscount,
       totalAmount,
       status: 'pending',
-      isPaid: false, 
+      isPaid: false,
     });
 
     // ✅ NEW: AUTO UPDATE TABLE STATUS & SESSION
@@ -205,7 +281,7 @@ class PublicService {
       table.currentSession.totalOrders += 1;
       table.currentSession.totalAmount += totalAmount;
     }
-    
+
     await table.save();
 
     // ✅ EMIT SOCKET EVENTS
