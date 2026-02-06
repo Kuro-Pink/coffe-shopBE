@@ -41,6 +41,7 @@ interface CreateOrderData {
   customerPhone: string;
   customerNote?: string;
   voucherDiscount?: number;
+  voucherId?: string;
   items: Array<{
     productId: string;
     quantity: number;
@@ -264,6 +265,26 @@ class PublicService {
       status: 'pending',
       isPaid: false,
     });
+
+    // 🔥 UPDATE VOUCHER USED COUNT
+    if (data.voucherId) {
+      const voucher = await Voucher.findById(data.voucherId);
+
+      if (voucher) {
+        if (voucher.usageLimit && voucher.usedCount >= voucher.usageLimit) {
+          throw new ApiError(400, 'Voucher hết lượt sử dụng');
+        }
+
+        voucher.usedCount += 1;
+
+        // Auto inactive nếu hết lượt
+        if (voucher.usageLimit && voucher.usedCount >= voucher.usageLimit) {
+          voucher.isActive = false;
+        }
+
+        await voucher.save();
+      }
+    }
 
     // ✅ NEW: AUTO UPDATE TABLE STATUS & SESSION
     if (table.status === 'available') {

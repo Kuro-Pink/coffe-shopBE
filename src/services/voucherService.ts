@@ -23,6 +23,17 @@ class VoucherService {
   }
 
   async getByStore(storeId: string) {
+    const now = new Date();
+
+    await Voucher.updateMany(
+      {
+        storeId,
+        endDate: { $lt: now },
+        isActive: true,
+      },
+      { $set: { isActive: false } },
+    );
+
     return Voucher.find({ storeId }).sort({ createdAt: -1 });
   }
 
@@ -87,6 +98,10 @@ class VoucherService {
 
     if (!voucher) {
       throw new ApiError(400, 'Voucher không hợp lệ');
+    }
+
+    if (voucher.usageLimit && voucher.usedCount >= voucher.usageLimit) {
+      throw new ApiError(400, 'Voucher đã hết lượt sử dụng');
     }
 
     if (voucher.minBillValue && total < voucher.minBillValue) {
