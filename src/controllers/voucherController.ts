@@ -47,6 +47,14 @@ class VoucherController {
     res.json(ApiResponse.success(v));
   });
 
+  applyVoucher = catchAsync(async (req: Request, res: Response) => {
+    const { code, storeId, total } = req.body;
+
+    const result = await voucherService.applyToOrder(code, storeId, total);
+
+    res.json(ApiResponse.success(result));
+  });
+
   toggle = catchAsync(async (req: Request, res: Response) => {
     const v = await voucherService.toggle(req.params.id);
     res.json(ApiResponse.success(v));

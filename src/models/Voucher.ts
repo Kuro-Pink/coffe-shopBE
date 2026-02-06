@@ -5,20 +5,13 @@ export interface IVoucher extends Document {
   name: string;
   type: 'percent' | 'fixed';
   value: number;
-
-  scope: 'product' | 'order';
-
   productIds?: mongoose.Types.ObjectId[];
-
   minBillValue?: number;
   maxDiscount?: number;
-
   usageLimit?: number;
   usedCount: number;
-
   startDate: Date;
   endDate: Date;
-
   isActive: boolean;
   storeId: mongoose.Types.ObjectId;
 }
@@ -34,7 +27,6 @@ const voucherSchema = new Schema<IVoucher>(
     name: { type: String, required: true },
     type: { type: String, enum: ['percent', 'fixed'], required: true },
     value: { type: Number, required: true, min: 0 },
-    scope: { type: String, enum: ['product', 'order'], required: true },
     productIds: {
       type: [
         {

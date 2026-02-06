@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import publicController from '../controllers/publicController';
+import hostController from '../controllers/hostController';
+import voucherController from '../controllers/voucherController';
 
 const router = Router();
 
@@ -16,6 +18,7 @@ router.get('/tables/:tableId', publicController.getTableInfo);
 // Create order
 router.post('/orders', publicController.createOrder);
 
-console.log('✅ Public routes registered');
+// Apply voucher
+router.post('/apply-voucher', voucherController.applyVoucher);
 
 export default router;

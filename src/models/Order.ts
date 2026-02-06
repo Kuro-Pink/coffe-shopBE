@@ -3,7 +3,11 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IOrderItem {
   productId: mongoose.Types.ObjectId;
   name: string;
-  price: number;
+
+  originalPrice: number;
+  finalPrice: number;
+  discountAmount: number;
+
   quantity: number;
 }
 
@@ -16,6 +20,9 @@ export interface IOrder extends Document {
   customerPhone: string;
   customerNote: string;
   items: IOrderItem[];
+  subtotal: number; // tổng trước voucher
+  productSaving: number; // tổng giảm theo sản phẩm
+  voucherDiscount: number; // giảm theo mã
   totalAmount: number;
   status: 'pending' | 'completed' | 'cancelled';
   confirmedBy?: mongoose.Types.ObjectId; // Staff who confirmed order
@@ -39,11 +46,9 @@ const orderItemSchema = new Schema<IOrderItem>(
       type: String,
       required: true,
     },
-    price: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
+    originalPrice: { type: Number, required: true, min: 0 },
+    finalPrice: { type: Number, required: true, min: 0 },
+    discountAmount: { type: Number, default: 0 },
     quantity: {
       type: Number,
       required: true,
@@ -96,6 +101,9 @@ const orderSchema = new Schema<IOrder>(
         message: 'Order must have at least one item',
       },
     },
+    subtotal: { type: Number, default: 0 },
+    productSaving: { type: Number, default: 0 },
+    voucherDiscount: { type: Number, default: 0 },
     totalAmount: {
       type: Number,
       required: true,
