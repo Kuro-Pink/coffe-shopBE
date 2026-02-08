@@ -9,6 +9,7 @@ import {
   suggestOrderByPhone,
   analyzeCustomerByPhone,
 } from '../services/aiService';
+import { applyVoucherToProduct } from '../services/voucherPriceService';
 
 const normalize = (str: string) =>
   str
@@ -83,7 +84,7 @@ export const chatWithAI = async (req: Request, res: Response) => {
     const products = await Product.find({
       storeId,
       isAvailable: true,
-    }).select('_id name price image category');
+    });
 
     if (products.length === 0) {
       return res.json({
@@ -98,19 +99,27 @@ export const chatWithAI = async (req: Request, res: Response) => {
     const aiData = await chatAIReply(action, products);
 
     // Map lại sản phẩm thật
-    const mappedProducts = (aiData.products || [])
-      .map((aiP: any) => {
-        const real = products.find((p) => p.name === aiP.name);
-        if (!real) return null;
+    const mappedProducts = (
+      await Promise.all(
+        (aiData.products || []).map(async (aiP: any) => {
+          const real = products.find((p) => p.name === aiP.name);
+          if (!real) return null;
 
-        return {
-          productId: real._id,
-          name: real.name,
-          price: real.price,
-          image: real.image,
-        };
-      })
-      .filter(Boolean);
+          // 🔥 ÁP VOUCHER TẠI ĐÂY
+          const priceData = await applyVoucherToProduct(real);
+
+          return {
+            productId: real._id,
+            name: real.name,
+            originalPrice: priceData.priceOriginal,
+            price: priceData.priceFinal,
+            finalPrice: priceData.priceFinal,
+            discountAmount: priceData.discountAmount,
+            image: real.image,
+          };
+        }),
+      )
+    ).filter(Boolean);
 
     // 🚨 Nếu user chọn nhóm mà quán KHÔNG CÓ MÓN
     if (mappedProducts.length === 0 && !aiData.action) {
@@ -277,6 +286,8 @@ export const recommendCombo = async (req: Request, res: Response) => {
           name: '$product.name',
           price: '$product.price',
           image: '$product.image',
+          discountType: '$product.discountType',
+          discount: '$product.discount',
           count: 1,
         },
       },
@@ -288,6 +299,23 @@ export const recommendCombo = async (req: Request, res: Response) => {
         message: 'Chưa đủ dữ liệu để gợi ý combo',
       });
     }
+    const comboRaw = combos[0];
+
+    const comboProduct = await Product.findById(comboRaw.productId);
+
+    const priceData = await applyVoucherToProduct(comboProduct);
+
+    const comboFormatted = {
+      productId: comboRaw.productId,
+      name: comboRaw.name,
+
+      price: priceData.priceFinal,
+      originalPrice: priceData.priceOriginal,
+      finalPrice: priceData.priceFinal,
+
+      discountAmount: priceData.discountAmount,
+      image: comboRaw.image,
+    };
 
     const baseProduct = await Product.findById(productId).select('name');
 
@@ -295,7 +323,7 @@ export const recommendCombo = async (req: Request, res: Response) => {
 
     res.json({
       baseProduct: baseProduct?.name,
-      combo: combos[0],
+      combo: comboFormatted,
       upsellText,
     });
   } catch (error: any) {

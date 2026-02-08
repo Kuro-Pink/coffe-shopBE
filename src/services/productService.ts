@@ -4,6 +4,7 @@ import Store from '../models/Store';
 import Voucher from '../models/Voucher';
 import { ApiError } from '../utils/ApiError';
 import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinaryUpload';
+import { applyVoucherToProduct } from './voucherPriceService';
 
 interface CreateProductData {
   name: string;
@@ -25,45 +26,6 @@ interface UpdateProductData {
 }
 
 class ProductService {
-  private async applyVoucherToProduct(product: IProduct) {
-    const now = new Date();
-
-    const voucher = await Voucher.findOne({
-      storeId: product.storeId,
-      scope: 'product',
-      productIds: product._id,
-      isActive: true,
-      startDate: { $lte: now },
-      endDate: { $gte: now },
-    });
-
-    let priceFinal = product.price;
-    let discountAmount = 0;
-
-    if (voucher) {
-      if (voucher.type === 'percent') {
-        discountAmount = (product.price * voucher.value) / 100;
-      } else {
-        discountAmount = voucher.value;
-      }
-
-      if (voucher.maxDiscount) {
-        discountAmount = Math.min(discountAmount, voucher.maxDiscount);
-      }
-
-      priceFinal = Math.max(0, product.price - discountAmount);
-    }
-
-    return {
-      ...product.toObject(),
-      priceOriginal: product.price,
-      priceFinal,
-      discountAmount,
-      hasDiscount: !!voucher,
-      voucherId: voucher?._id || null,
-    };
-  }
-
   // Get all products by store
   async getProductsByStore(storeId: string, filter: any = {}): Promise<IProduct[]> {
     const store = await Store.findById(storeId);
@@ -87,7 +49,7 @@ class ProductService {
       .populate('categoryId', 'name')
       .sort({ createdAt: -1 });
 
-    const result = await Promise.all(products.map((p) => this.applyVoucherToProduct(p)));
+    const result = await Promise.all(products.map((p) => applyVoucherToProduct(p)));
 
     return result;
   }
@@ -102,7 +64,7 @@ class ProductService {
       throw new ApiError(404, 'Product not found');
     }
 
-    return this.applyVoucherToProduct(product);
+    return applyVoucherToProduct(product);
   }
 
   // Create product
