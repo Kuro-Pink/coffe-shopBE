@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import {
   chatWithAI,
-  recommendProducts,
   recommendCombo,
+  recommendCartCombo,
   suggestOrder,
   analyzeCustomer,
 } from '../controllers/aiController';
@@ -10,8 +10,7 @@ import {
 const router = Router();
 
 router.post('/chat', chatWithAI);
-router.get('/recommend', recommendProducts);
-router.get('/combo', recommendCombo);
+router.post('/cart-combo', recommendCartCombo);
 router.post('/suggest-order', suggestOrder);
 router.post('/customer-profile', analyzeCustomer);
 

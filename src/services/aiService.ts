@@ -256,21 +256,6 @@ export const chatAIReply = async (action: ChatAction, products: any[]) => {
   return { reply: 'Bạn chọn món trên menu giúp mình nha 😊', products: [] };
 };
 
-export const getAIRecommendationExplain = async (products: any[]) => {
-  const hour = new Date().getHours();
-
-  if (hour >= 10 && hour <= 17)
-    return 'Trời nóng vầy uống mấy món mát lạnh này là hợp lý lắm đó 😍';
-
-  if (hour >= 18) return 'Buổi tối làm ly nhẹ nhẹ chill chill là đúng bài luôn ☕';
-
-  return 'Mấy món này đang được khách gọi nhiều đó ạ 😋';
-};
-
-export const getAIComboSuggestText = async (base: string, combo: string) => {
-  return `Mọi người hay gọi ${base} kèm ${combo} lắm đó 😋 Anh/chị dùng thử luôn không?`;
-};
-
 export const suggestOrderByPhone = async (phone: string) => {
   const lastOrder = await Order.findOne({
     customerPhone: phone,

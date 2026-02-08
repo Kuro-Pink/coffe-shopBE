@@ -15,10 +15,6 @@ export async function applyVoucherToProduct(product: IProduct) {
     endDate: { $gte: now },
   });
 
-  console.log('voucher', voucher);
-  console.log('product._id type', typeof product._id);
-  console.log('storeId type', typeof product.storeId);
-
   let priceFinal = product.price;
   let discountAmount = 0;
 
