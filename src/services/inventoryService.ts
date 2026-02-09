@@ -205,6 +205,29 @@ class InventoryService {
     }
   }
 
+  async checkStockForProduct(productId: string, quantity = 1): Promise<boolean> {
+    // Lấy toàn bộ ingredient của product
+    const recipe = await ProductIngredient.find({ productId }).populate('ingredientId');
+
+    // Không có recipe → coi như luôn đủ
+    if (!recipe || recipe.length === 0) return true;
+
+    for (const recipeItem of recipe) {
+      const ingredient = recipeItem.ingredientId as any;
+
+      if (!ingredient) continue;
+
+      const amountNeeded = recipeItem.amount * quantity;
+
+      // giống deductStockForOrder nhưng return false thay vì throw
+      if (ingredient.quantity < amountNeeded) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   // ========== PRODUCT RECIPE ==========
 
   // Get product recipe

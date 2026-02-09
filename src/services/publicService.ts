@@ -6,6 +6,7 @@ import Order, { IOrder } from '../models/Order';
 import Voucher from '../models/Voucher';
 import { ApiError } from '../utils/ApiError';
 import { generateOrderNumber } from '../utils/orderNumberGenerator';
+import inventoryService from '../services/inventoryService';
 import { emitNewOrder } from '../utils/socket';
 
 interface MenuData {
@@ -30,6 +31,7 @@ interface MenuData {
       voucherName?: string | null;
       image?: string;
       isAvailable: boolean;
+      isOutOfStock?: boolean;
     }>;
   }>;
 }
@@ -131,6 +133,9 @@ class PublicService {
       for (const p of products) {
         const discountInfo = await this.getProductDiscount(p._id.toString(), p.price, storeId);
 
+        // 👉 CHECK STOCK
+        const isEnoughStock = await inventoryService.checkStockForProduct(p._id.toString(), 1);
+
         productList.push({
           _id: p._id.toString(),
           name: p.name,
@@ -141,6 +146,9 @@ class PublicService {
           voucherName: discountInfo.voucherName,
           image: p.image,
           isAvailable: p.isAvailable,
+
+          // 👇 NEW
+          isOutOfStock: !isEnoughStock,
         });
       }
 
