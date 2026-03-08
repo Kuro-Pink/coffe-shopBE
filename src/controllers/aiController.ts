@@ -125,7 +125,7 @@ export const chatWithAI = async (req: Request, res: Response) => {
     ).filter(Boolean);
 
     // 🚨 Nếu user chọn nhóm mà quán KHÔNG CÓ MÓN
-    if (mappedProducts.length === 0 && !aiData.action) {
+    if (mappedProducts.length === 0 && !(aiData as any).action) {
       return res.json({
         reply: 'Món này hiện quán đang hết hoặc chưa có trong menu 😢 Bạn thử xem món khác nha!',
         products: [],
@@ -135,7 +135,7 @@ export const chatWithAI = async (req: Request, res: Response) => {
     res.json({
       reply: aiData.reply,
       products: mappedProducts,
-      action: aiData.action || null, // 🆕 để FE biết bước tiếp theo
+      action: (aiData as any).action || null,
     });
   } catch (error: any) {
     console.error('AI Chat Error:', error);

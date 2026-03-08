@@ -294,9 +294,11 @@ export const analyzeCustomerByPhone = async (phone: string) => {
   const totalSpent = orders.reduce((s, o) => s + o.totalAmount, 0);
 
   const map: Record<string, number> = {};
-  o.items.forEach((i: { name: string; quantity: number }) => {
-    map[i.name] = (map[i.name] || 0) + i.quantity;
-  });
+  orders.forEach((o) =>
+    o.items.forEach((i: { name: string; quantity: number }) => {
+      map[i.name] = (map[i.name] || 0) + i.quantity;
+    }),
+  );
   const fav = Object.entries(map)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)

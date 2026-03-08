@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import {
   chatWithAI,
-  recommendCombo,
   recommendCartCombo,
   suggestOrder,
   analyzeCustomer,
