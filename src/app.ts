@@ -11,6 +11,7 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:3000',
   'http://192.168.0.217:3000',
+  'http://192.168.0.215:3000',
   'https://coffee-shop-frontend-production.up.railway.app',
 ];
 
