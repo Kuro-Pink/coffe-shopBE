@@ -6,7 +6,6 @@ import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinaryUpl
 import emailService from '../utils/emailService';
 import { getIO } from '../utils/socket';
 
-
 interface CreateStoreRequestData {
   userId: string;
   storeName: string;
@@ -140,7 +139,7 @@ class StoreRequestService {
 
     // Send approval email
     const user = request.userId as any;
-    await emailService.sendStoreApprovedEmail(user.email, user.name, request.storeName);
+    emailService.sendStoreApprovedEmail(user.email, user.name, request.storeName);
 
     const io = getIO();
     io.to('admins').emit('store_request_updated');
@@ -152,7 +151,7 @@ class StoreRequestService {
   async rejectStoreRequest(
     requestId: string,
     adminId: string,
-    rejectionReason: string
+    rejectionReason: string,
   ): Promise<IStoreRequest> {
     const request = await StoreRequest.findById(requestId).populate('userId', 'name email');
 
@@ -179,12 +178,7 @@ class StoreRequestService {
 
     // Send rejection email
     const user = request.userId as any;
-    await emailService.sendStoreRejectedEmail(
-      user.email,
-      user.name,
-      request.storeName,
-      rejectionReason
-    );
+    emailService.sendStoreRejectedEmail(user.email, user.name, request.storeName, rejectionReason);
 
     const io = getIO();
     io.to('admins').emit('store_request_updated');
@@ -208,7 +202,7 @@ class StoreRequestService {
     // Delete logo from Cloudinary if exists
     if (request.storeLogo) {
       const publicId = request.storeLogo.split('/').slice(-2).join('/').split('.')[0];
-      await deleteFromCloudinary(publicId);
+      deleteFromCloudinary(publicId).catch(console.error);
     }
 
     await StoreRequest.findByIdAndDelete(requestId);
