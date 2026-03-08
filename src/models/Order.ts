@@ -3,11 +3,9 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IOrderItem {
   productId: mongoose.Types.ObjectId;
   name: string;
-
   originalPrice: number;
   finalPrice: number;
   discountAmount: number;
-
   quantity: number;
 }
 
@@ -111,7 +109,7 @@ const orderSchema = new Schema<IOrder>(
     },
     status: {
       type: String,
-      enum: ['pending', 'confirmed', 'completed', 'cancelled'],
+      enum: ['pending', 'completed', 'cancelled'],
       default: 'pending',
     },
     confirmedBy: {

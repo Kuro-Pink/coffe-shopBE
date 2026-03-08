@@ -22,7 +22,16 @@ type ChatAction =
   | 'MORNING_DRINK'
   | 'COLD_WEATHER'
   | 'LESS_ICE'
-  | 'HOT_DRINK';
+  | 'HOT_DRINK'
+  | 'SMART_RECOMMEND'
+  | 'SHOW_COFFEE'
+  | 'SHOW_MILK_TEA'
+  | 'SHOW_TEA'
+  | 'SHOW_JUICE'
+  | 'SHOW_SMOOTHIE'
+  | 'SHOW_YOGURT'
+  | 'SHOW_MATCHA'
+  | 'SHOW_ICE_BLENDED';
 
 const detectActionFromMessage = (message: string): ChatAction => {
   const msg = normalize(message);
@@ -140,6 +149,9 @@ export const chatWithAI = async (req: Request, res: Response) => {
  */
 export const recommendCartCombo = async (req: Request, res: Response) => {
   const { storeId, productIds } = req.body;
+  if (!storeId || !productIds?.length) {
+    return res.json({ combos: [] });
+  }
   const storeObjectId = new mongoose.Types.ObjectId(storeId);
   const productObjectIds = productIds.map((id: string) => new mongoose.Types.ObjectId(id));
 
@@ -154,8 +166,7 @@ export const recommendCartCombo = async (req: Request, res: Response) => {
   });
 
   // LẤY CATEGORY HOẶC TAG
-  const categories = products.map((p) => p.category);
-
+  const categories = products.map((p) => p.categoryId);
   // tìm sản phẩm hay được gọi cùng
   const suggestions = await Order.aggregate([
     { $match: { storeId: storeObjectId } },
@@ -170,7 +181,7 @@ export const recommendCartCombo = async (req: Request, res: Response) => {
     { $limit: 5 },
   ]);
 
-  const cartObjectIds = productIds.map((id) => new Types.ObjectId(id));
+  const cartObjectIds = productIds.map((id: string) => new Types.ObjectId(id));
   const productIdsSuggest = suggestions.map((s) => s._id);
   const suggestProducts = await Product.find({
     _id: {

@@ -98,7 +98,12 @@ class BillService {
     }
 
     // Combine all items
-    const allItems: any[] = [];
+    const allItems: {
+      productId: mongoose.Types.ObjectId;
+      name: string;
+      price: number;
+      quantity: number;
+    }[] = [];
     let subtotal = 0;
 
     for (const order of orders) {
@@ -113,9 +118,9 @@ class BillService {
 
         // 🔥 FALLBACK: nếu vẫn = 0 thì lấy từ Product
         if (!finalPrice || finalPrice <= 0) {
-          const product = await Product.findById(item.productId).select(
+          const product = (await Product.findById(item.productId).select(
             'price discount discountType',
-          );
+          )) as any;
 
           if (product) {
             if (product.discountType === 'percent') {

@@ -20,6 +20,7 @@ export type ChatAction =
   | 'MORNING_DRINK'
   | 'COLD_WEATHER'
   | 'LESS_ICE'
+  | 'SMART_RECOMMEND'
   | 'HOT_DRINK';
 
 const normalize = (str: string) =>
@@ -271,7 +272,7 @@ export const suggestOrderByPhone = async (phone: string) => {
       items: lastOrder.items.map((i) => ({
         productId: i.productId,
         name: i.name,
-        price: i.price,
+        price: i.finalPrice,
         quantity: i.quantity,
       })),
       note: lastOrder.customerNote,
@@ -293,7 +294,9 @@ export const analyzeCustomerByPhone = async (phone: string) => {
   const totalSpent = orders.reduce((s, o) => s + o.totalAmount, 0);
 
   const map: Record<string, number> = {};
-  orders.forEach((o) => o.items.forEach((i) => (map[i.name] = (map[i.name] || 0) + i.quantity)));
+  o.items.forEach((i: { name: string; quantity: number }) => {
+    map[i.name] = (map[i.name] || 0) + i.quantity;
+  });
   const fav = Object.entries(map)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
