@@ -8,20 +8,12 @@ import { errorHandler, notFound } from './middlewares/errorHandler';
 const app = express();
 
 /* ================== CORS PHẢI ĐỨNG ĐẦU ================== */
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://192.168.0.217:3000',
-  'http://192.168.0.215:3000',
-  'https://coffee-shop-frontend-production.up.railway.app',
-];
-
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: true,
     credentials: true,
   }),
 );
-
 /* ✅ CHO PHÉP PREFLIGHT */
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
