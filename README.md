@@ -1,333 +1,186 @@
-// Backend
+# Coffee Shop Management System Backend
 
-- Node.js + Express
-- TypeScript
-- MongoDB + Mongoose
-- JWT (jsonwebtoken)
-- Socket.io (real-time)
-- Bcrypt (hash password)
-- Multer + Cloudinary (upload images)
-- Express-validator (validation)
+Backend API cho hệ thống quan ly quan ca phe theo mo hinh multi-role, ho tro admin, chu cua hang, nhan vien va khach hang dat mon tai ban thong qua QR code.
 
-# Coffee Shop Management System - Backend
+Du an tap trung vao bai toan van hanh thuc te cua quan ca phe:
+- Quan ly nhieu cua hang
+- Quan ly menu, ban, don hang va thanh toan
+- Nhan don theo thoi gian thuc
+- Theo doi nhan vien, ca lam va ton kho
+- Bao cao, thong ke va mot so tinh nang AI ho tro goi y
 
-## Features
+## Roles
 
-- Admin: Store management
-- Host: Menu, Tables, Orders, Analytics
-- Customer: Browse menu, Place orders (no auth)
-- Real-time order notifications via Socket.io
+- `admin`: quan ly he thong, hosts, stores, store requests, dashboard tong quan
+- `host`: quan ly cua hang, menu, ban, orders, bills, vouchers, staff, inventory, reports, analytics
+- `staff`: check-in/check-out va xem lich su ca lam
+- `customer`: xem menu cong khai, dat mon khong can dang nhap, ap dung voucher
+
+## Core Features
+
+### Public ordering flow
+- Khach scan QR tai ban de vao menu cua cua hang
+- Xem danh muc, san pham, thong tin ban
+- Dat mon khong can auth
+- Ap dung voucher truoc khi tao order
+- Host nhan thong bao don moi qua Socket.IO
+
+### Store operations
+- CRUD categories, products, tables
+- Upload hinh anh va logo qua Multer + Cloudinary
+- Tao lai QR code cho ban
+- Quan ly trang thai ban va san pham
+- Tao bill va danh dau thanh toan
+
+### Business management
+- Quan ly staff theo tung store
+- Quan ly shifts, check-in/check-out, theo doi ca dang hoat dong
+- Quan ly ingredients, cong thuc san pham va dieu chinh ton kho
+- Bao cao ton kho, usage report, sales summary, product profitability
+- Analytics cho doanh thu, peak hours, best sellers, customer insights, table performance
+
+### Platform management
+- Admin dashboard stats, revenue overview, recent activities
+- Duyet store requests
+- Quan ly host accounts va khoa/mo khoa tai khoan
+
+### AI support
+- Chat voi AI
+- Goi y combo cho gio hang
+- Goi y mon
+- Phan tich ho so khach hang
 
 ## Tech Stack
 
-- Node.js + Express + TypeScript
+- Node.js
+- Express 5
+- TypeScript
 - MongoDB + Mongoose
-- Socket.io
-- Cloudinary
-- JWT
+- Socket.IO
+- JWT authentication
+- bcryptjs
+- Multer + Cloudinary
+- express-validator
+- Nodemailer
+- OpenAI SDK
 
-## Setup
+## Project Structure
 
-1. npm install
-2. Copy .env.example to .env
-3. npm run dev
-
-## API Documentation
-
-See POSTMAN_COLLECTION.json
-
-backend/
-├── src/
-│ ├── config/
-│ │ ├── db.js
-│ │ └── cloudinary.js
-│ ├── models/
-│ │ ├── User.js
-│ │ ├── Store.js
-│ │ ├── Category.js
-│ │ ├── Product.js
-│ │ ├── Table.js
-│ │ └── Order.js
-│ ├── routes/
-│ │ ├── auth.js
-│ │ ├── admin.js
-│ │ ├── store.js
-│ │ ├── order.js
-│ │ └── public.js
-│ ├── controllers/
-│ ├── middleware/
-│ │ ├── auth.js
-│ │ └── upload.js
-│ ├── utils/
-│ │ └── socket.js
-│ └── server.js
-└── package.json
-
-2. Các Module cần có (Siêu tối giản)
-   A. Module Admin
-
-Quản lý cửa hàng
-
-CRUD cửa hàng
-Kích hoạt/vô hiệu hóa cửa hàng
-
-Dashboard đơn giản
-
-Tổng số cửa hàng
-Tổng số đơn hàng trong hệ thống
-
-B. Module Host/Store Owner
-
-Quản lý Menu
-
-CRUD danh mục
-CRUD sản phẩm (tên, giá, ảnh, mô tả)
-Toggle còn hàng/hết hàng
-
-Quản lý Bàn
-
-CRUD bàn
-Tạo & in QR code
-
-Quản lý Đơn hàng
-
-Nhận đơn real-time (Socket.io)
-Xem danh sách đơn
-Đánh dấu hoàn thành/hủy
-Xem chi tiết đơn
-
-Thống kê cơ bản
-
-Doanh thu hôm nay/tuần/tháng
-Số đơn hàng
-Top 5 món bán chạy
-
-C. Module Khách hàng (Rất đơn giản)
-
-Xem menu
-
-Scan QR → vào trang menu
-Hiển thị sản phẩm theo danh mục
-Xem chi tiết món
-
-Đặt hàng
-
-Add to cart
-Checkout (nhập SĐT + ghi chú)
-Submit đơn
-Hiện modal "Đặt hàng thành công! Món ăn sẽ có sau ~10 phút"
-✅ XONG - không có tracking
-
-Database Schema
-// Users
-{
-\_id,
-email,
-password, // bcrypt hash
-role: enum['admin', 'host'],
-name,
-phone,
-storeId: ObjectId // nếu là host
-}
-
-// Stores
-{
-\_id,
-name,
-address,
-phone,
-logo: String, // URL
-ownerId: ObjectId (ref Users),
-isActive: Boolean,
-createdAt
-}
-
-// Categories
-{
-\_id,
-name,
-storeId: ObjectId (ref Stores),
-order: Number // thứ tự hiển thị
-}
-
-// Products
-{
-\_id,
-name,
-description,
-price: Number,
-image: String, // URL
-categoryId: ObjectId (ref Categories),
-storeId: ObjectId (ref Stores),
-isAvailable: Boolean,
-createdAt
-}
-
-// Tables
-{
-\_id,
-tableNumber: String, // "B01", "B02"
-area: String, // "Tầng 1", "Sân thượng"
-storeId: ObjectId (ref Stores),
-qrCodeUrl: String // Link đến menu
-}
-
-// Orders
-{
-\_id,
-orderNumber: String, // auto-gen: "ORD20240115001"
-storeId: ObjectId (ref Stores),
-tableId: ObjectId (ref Tables),
-tableName: String, // cache để hiển thị
-customerPhone: String,
-customerNote: String,
-items: [
-{
-productId: ObjectId,
-name: String, // cache
-price: Number, // cache
-quantity: Number
-}
-],
-totalAmount: Number,
-status: enum['pending', 'completed', 'cancelled'],
-createdAt,
-completedAt
-}
-
+```text
+src/
+|-- app.ts
+|-- server.ts
+|-- config/
+|   |-- cloudinary.ts
+|   |-- database.ts
+|   `-- openai.ts
+|-- controllers/
+|-- middlewares/
+|-- models/
+|-- routes/
+|-- services/
+|-- scripts/
+|   `-- seedAdmin.ts
+`-- utils/
 ```
 
----
+## Main API Groups
 
-## 5. **Flow đặt hàng siêu đơn giản**
+Base URL: `http://localhost:5000/api/v1`
+
+- `/auth`: login, register, me
+- `/admin`: dashboard, stores, hosts, store requests, activity logs, revenue
+- `/host`: store operations, menu, tables, orders, bills, vouchers, staff, inventory, reports, analytics, shifts
+- `/staff`: my shift, check-in, check-out, shift history
+- `/public`: menu cong khai, table info, create order, apply voucher
+- `/ai`: chat, cart combo recommendation, order suggestion, customer profile analysis
+
+Health check:
+- `GET /api/v1/health`
+
+## Getting Started
+
+### 1. Install dependencies
+
+```bash
+npm install
 ```
 
-1. Khách scan QR code tại bàn
-   ↓
-2. Redirect: /menu/{storeId}?table={tableId}
-   ↓
-3. Browse menu, add to cart
-   ↓
-4. Click "Đặt hàng"
-   ↓
-5. Form popup:
-   - Số điện thoại (required)
-   - Ghi chú (optional)
-   - Button "Xác nhận"
-     ↓
-6. POST /api/orders
-   ↓
-7. Backend:
-   - Lưu order vào DB
-   - Socket.io emit "new_order" đến Host
-     ↓
-8. Response success
-   ↓
-9. Frontend:
-   - Clear cart
-   - Show success modal:
-     "✅ Đặt hàng thành công!
-     Món ăn sẽ có sau ~10 phút
-     Cảm ơn quý khách!"
-   - Button "Tiếp tục gọi món" / "Đóng"
-     ↓
-10. Host dashboard:
-    - Popup notification "Đơn hàng mới!"
-    - Hiển thị trong danh sách đơn
-      ↓
-11. Host làm món → đánh dấu "Hoàn thành"
-    ↓
-12. Khách lên quầy thanh toán
+### 2. Create environment variables
 
+Tao file `.env` trong root project.
+
+Toi thieu ban can cac bien sau:
+
+```env
+PORT=5000
+NODE_ENV=development
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+OPENAI_API_KEY=your_openai_api_key
 ```
 
-**✅ Không có tracking, không có notification cho khách**
+Luu y:
+- AI routes can `OPENAI_API_KEY`
+- Upload hinh anh can Cloudinary credentials
+- Mot so tinh nang email se can SMTP config neu ban su dung trong thuc te
 
----
+### 3. Run in development
 
-## 6. **API Endpoints tối giản**
-
-### **Auth**
+```bash
+npm run dev
 ```
 
-POST /api/auth/login
-POST /api/auth/register (chỉ admin tạo host)
-GET /api/auth/me
+### 4. Build production bundle
 
+```bash
+npm run build
 ```
 
-### **Admin**
+### 5. Start compiled server
+
+```bash
+npm start
 ```
 
-GET /api/admin/stores
-POST /api/admin/stores
-PUT /api/admin/stores/:id
-DELETE /api/admin/stores/:id
-GET /api/admin/stats
+### 6. Seed admin account
 
+```bash
+npm run seed:admin
 ```
 
-### **Host - Menu**
-```
+Tai khoan mac dinh duoc tao boi script:
+- Email: `admin@coffee.com`
+- Password: `admin123`
 
-GET /api/stores/:storeId/categories
-POST /api/stores/:storeId/categories
-PUT /api/categories/:id
-DELETE /api/categories/:id
+## Real-time Behavior
 
-GET /api/stores/:storeId/products
-POST /api/stores/:storeId/products
-PUT /api/products/:id
-DELETE /api/products/:id
-PATCH /api/products/:id/toggle-availability
+Server duoc khoi tao bang HTTP server + Socket.IO trong [src/server.ts](./src/server.ts). Khi khach tao order, host co the nhan thong bao don moi theo thoi gian thuc de xu ly nhanh hon.
 
-```
+## Why This Project Is Recruiter-Friendly
 
-### **Host - Tables**
-```
+Du an nay khong chi la CRUD co ban. No the hien kha ro cac nhom bai toan backend thuong gap:
+- Role-based access control cho nhieu loai nguoi dung
+- Public ordering flow tach biet voi khu vuc quan tri
+- Xu ly nghiep vu don hang, bill, voucher, inventory, shift
+- Upload media, real-time events, analytics va reporting
+- To chuc code theo huong `routes -> controllers -> services -> models`
 
-GET /api/stores/:storeId/tables
-POST /api/stores/:storeId/tables
-PUT /api/tables/:id
-DELETE /api/tables/:id
+## Current Notes
 
-```
+- Project hien chua co test suite tu dong
+- Repo nay la backend only, frontend khong nam trong repo nay
+- Neu ban gui repo cho recruiter, nen kem them screenshots hoac link frontend demo de ho thay flow end-to-end nhanh hon
 
-### **Host - Orders**
-```
+## Suggested Demo Flow
 
-GET /api/stores/:storeId/orders
-GET /api/orders/:id
-PATCH /api/orders/:id/status
-GET /api/stores/:storeId/stats
-
-```
-
-### **Public - Customer**
-```
-
-GET /api/public/stores/:storeId/menu (categories + products)
-GET /api/public/tables/:tableId (lấy info bàn)
-POST /api/public/orders (tạo đơn)
-
-9. UI Screens chính
-   Admin (3 screens)
-
-Login
-Dashboard (số liệu + list stores)
-Store form (create/edit)
-
-Host (5 screens)
-
-Login
-Dashboard (stats + recent orders)
-Menu management (categories + products)
-Table management + QR codes
-Order list + detail
-
-Customer (2 screens)
-
-Menu page (browse + cart)
-Success modal (sau khi order)
-
-= Tổng ~10 screens chính
+Neu muon reviewer hieu nhanh du an, hay demo theo thu tu sau:
+1. Admin tao hoac duyet store
+2. Host them category, product, table
+3. Khach scan QR va tao order
+4. Host nhan order real-time va tao bill
+5. Staff check-in/check-out
+6. Xem dashboard analytics hoac inventory report
